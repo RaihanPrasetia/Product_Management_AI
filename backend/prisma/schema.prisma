@@ -1,0 +1,281 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider  = "prisma-client-js"
+  // Aktifkan preview feature untuk extendedWhereUnique agar bisa findUnique di field non-PK/non-unik
+}
+
+datasource db {
+  provider = "postgresql" // Anda bisa ganti dengan "mysql", "sqlite", dll.
+  url      = env("DATABASE_URL")
+}
+
+
+// ===================================
+// MODEL USER & ROLE
+// ===================================
+
+model User {
+  id        String    @id @default(cuid())
+  name      String
+  email     String    @unique
+  password  String // Ingat untuk selalu hash password ini
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // Soft delete
+
+  // Relasi
+  roleId String
+  role   Role   @relation(fields: [roleId], references: [id])
+
+  // Relasi untuk createdBy (daftar tabel yang dibuat oleh user ini)
+  createdProducts      Product[]      @relation("CreatedProducts")
+  createdCategories    Category[]     @relation("CreatedCategories")
+  createdBrands        Brand[]        @relation("CreatedBrands")
+  createdVariants      Variant[]      @relation("CreatedVariants")
+  createdProductVariants ProductVariant[] @relation("CreatedProductVariants")
+  createdSuppliers     Supplier[]     @relation("CreatedSuppliers")
+  createdPurchases     Purchase[]     @relation("CreatedPurchases")
+  createdDiscounts     Discount[]     @relation("CreatedDiscounts")
+}
+
+model Role {
+  id        String    @id @default(cuid())
+  name      String    @unique // Contoh: "ADMIN", "CASHIER", "STAFF_GUDANG"
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // Soft delete
+
+  // Relasi
+  users User[]
+}
+
+
+// ===================================
+// MODEL UTAMA PRODUK
+// ===================================
+
+// Tambahkan Enum ini di bagian atas atau bawah skema Anda
+enum ProductType {
+  SIMPLE    // Untuk produk tanpa varian
+  VARIABLE  // Untuk produk dengan varian
+}
+
+model Product {
+  id            String      @id @default(cuid())
+  name          String
+  description   String?
+  sku           String?     @unique // Wajib untuk SIMPLE, bisa jadi base SKU untuk VARIABLE
+  price         Decimal?    // Harga jual untuk produk SIMPLE
+  type          ProductType // Menentukan tipe produk
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  deletedAt     DateTime?
+
+  // Relasi
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+  brandId    String
+  brand      Brand    @relation(fields: [brandId], references: [id])
+  createdById String
+  createdBy   User     @relation("CreatedProducts", fields: [createdById], references: [id])
+  
+  discounts       Discount[]
+  
+  // Hanya diisi untuk produk tipe VARIABLE
+  productVariants ProductVariant[]
+
+  // Hanya diisi untuk produk tipe SIMPLE
+  stock           Stock?
+  purchaseItems PurchaseItem[]
+
+}
+
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  isActive  Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // Soft delete
+
+  // Relasi
+  createdById String
+  createdBy   User   @relation("CreatedCategories", fields: [createdById], references: [id])
+  products    Product[]
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+model Discount {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  isActive  Boolean   @default(false)
+  type      DiscountType
+  value     Decimal  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // Soft delete
+
+  // Relasi
+  createdById String
+  createdBy   User   @relation("CreatedDiscounts", fields: [createdById], references: [id])
+  products    Product[]
+}
+
+model Brand {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  isActive  Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // Soft delete
+
+  // Relasi
+  createdById String
+  createdBy   User   @relation("CreatedBrands", fields: [createdById], references: [id])
+  products    Product[]
+}
+
+// ===================================
+// MODEL UNTUK VARIAN PRODUK
+// ===================================
+
+model Variant {
+  id        String    @id @default(cuid())
+  name      String    @unique // Contoh: "Warna", "Ukuran Lensa"
+  isActive  Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // Soft delete
+
+  // Relasi
+  createdById     String
+  createdBy       User             @relation("CreatedVariants", fields: [createdById], references: [id])
+  productVariants ProductVariant[]
+}
+
+model ProductVariant {
+  id        String    @id @default(cuid())
+  value     String
+  sku       String    @unique // SKU wajib untuk setiap varian
+  price     Decimal?  // Varian bisa punya harga sendiri, atau mengikuti harga base produk
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Relasi
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variantId String
+  variant   Variant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  createdById String
+  createdBy   User   @relation("CreatedProductVariants", fields: [createdById], references: [id])
+  
+  // Setiap varian punya entri stok sendiri
+  stock         Stock?
+  purchaseItems PurchaseItem[]
+
+  @@unique([productId, variantId, value])
+}
+
+// ===================================
+// MODEL INVENTORY & STOK
+// ===================================
+
+model Stock {
+  id          String   @id @default(cuid())
+  quantity    Int      @default(0)
+  updatedAt   DateTime @updatedAt
+  
+  // Relasi fleksibel: HANYA SATU dari dua field ini yang diisi
+  productId        String?        @unique // Relasi ke produk SIMPLE
+  product          Product?       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  productVariantId String?        @unique // Relasi ke produk VARIABLE
+  productVariant   ProductVariant? @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+
+  history StockHistory[]
+}
+
+model StockHistory {
+  id          String           @id @default(cuid())
+  change      Int
+  newQuantity Int
+  type        StockHistoryType
+  notes       String?
+  createdAt   DateTime         @default(now())
+  stockId     String
+  stock       Stock            @relation(fields: [stockId], references: [id], onDelete: Cascade)
+}
+
+enum StockHistoryType {
+  PURCHASE
+  SALE
+  ADJUSTMENT_IN
+  ADJUSTMENT_OUT
+  RETURN
+}
+
+// ===================================
+// MODEL PEMBELIAN (PURCHASE)
+// ===================================
+
+model Supplier {
+  id        String    @id @default(cuid())
+  name      String
+  phone     String?
+  address   String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // Soft delete
+
+  // Relasi
+  createdById String
+  createdBy   User       @relation("CreatedSuppliers", fields: [createdById], references: [id])
+  purchases   Purchase[]
+}
+
+model Purchase {
+  id            String    @id @default(cuid())
+  invoiceNumber String    @unique
+  purchaseDate  DateTime  @default(now())
+  totalAmount   Decimal
+  notes         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime? // Soft delete
+
+  // Relasi
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id])
+
+  createdById String
+  createdBy   User   @relation("CreatedPurchases", fields: [createdById], references: [id])
+
+  items PurchaseItem[]
+}
+
+model PurchaseItem {
+  id        String   @id @default(cuid())
+  quantity  Int
+  price     Decimal
+  subtotal  Decimal
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relasi
+  purchaseId       String
+  purchase         Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+
+  productId        String?       
+  product          Product?       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  productVariantId String?       
+  productVariant   ProductVariant? @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+}

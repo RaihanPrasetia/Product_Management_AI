@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2020", // Target JavaScript modern
+    "module": "commonjs", // Sistem modul Node.js
+    "rootDir": "./", // Folder kode sumber utama
+    "outDir": "./dist", // Folder output setelah kompilasi
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+    "esModuleInterop": true, // Kompatibilitas modul
+    "forceConsistentCasingInFileNames": true,
+    "strict": true, // Mengaktifkan semua aturan strict type-checking
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*", "prisma/**/*"] // Hanya kompilasi file di dalam folder src
+}
