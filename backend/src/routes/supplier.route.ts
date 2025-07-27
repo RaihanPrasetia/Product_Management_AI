@@ -9,6 +9,7 @@ const allowedRoles = ['ADMIN', 'STAFF_GUDANG'];
 router.post('/', checkRole(allowedRoles), SupplierController.create);
 router.patch('/:id', checkRole(allowedRoles), SupplierController.update);
 router.delete('/:id', checkRole(allowedRoles), SupplierController.delete);
+router.post('/:id/restore', checkRole(['ADMIN']), SupplierController.restore);
 
 // Semua pengguna yang login bisa melihat data supplier
 router.get('/', SupplierController.getAll);

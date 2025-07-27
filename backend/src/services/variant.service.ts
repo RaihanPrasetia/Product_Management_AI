@@ -1,5 +1,5 @@
 import db from '@/configs/db.config';
-import { AppError } from '@/helpers/error.helper';
+import { AppError } from '@/helpers/response.helper';
 
 class VariantService {
   public async create(
@@ -11,16 +11,15 @@ class VariantService {
     });
   }
 
-  public async findAll() {
+  public async findAll(prismaArgs: any) {
     return db.variant.findMany({
-      where: { deletedAt: null },
-      orderBy: { name: 'asc' },
+      ...prismaArgs,
     });
   }
 
   public async findById(id: string) {
     const variant = await db.variant.findUnique({
-      where: { id, deletedAt: null },
+      where: { id },
     });
     if (!variant) {
       throw new AppError('Varian tidak ditemukan', 404);
@@ -41,6 +40,16 @@ class VariantService {
     return db.variant.update({
       where: { id },
       data: { deletedAt: new Date() },
+    });
+  }
+
+  public async restore(id: string) {
+    await this.findById(id); // Memastikan kategori ada sebelum dihapus
+    return db.variant.update({
+      where: { id },
+      data: {
+        deletedAt: null,
+      },
     });
   }
 }

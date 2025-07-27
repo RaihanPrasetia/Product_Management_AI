@@ -1,28 +1,29 @@
 import db from '@/configs/db.config';
-import { AppError } from '@/helpers/error.helper';
+import { AppError } from '@/helpers/response.helper';
 
 // Tipe data dari skema Zod untuk digunakan di service
 import { z } from 'zod';
 import { adjustStockSchema } from '@/validations/stock.validation';
 type AdjustStockInput = z.infer<typeof adjustStockSchema>;
 
+const StockInclude = {
+  product: { select: { name: true, sku: true } }, // Ambil info produk simple
+  productVariant: {
+    select: {
+      value: true,
+      sku: true,
+      product: { select: { name: true } },
+    },
+  },
+};
 class StockService {
   /**
    * Mengambil semua data stok dengan paginasi dan relasi ke produk/varian.
    */
-  public async findAll() {
+  public async findAll(prismaArgs?: any) {
     return db.stock.findMany({
-      include: {
-        product: { select: { name: true, sku: true } }, // Ambil info produk simple
-        productVariant: {
-          select: {
-            value: true,
-            sku: true,
-            product: { select: { name: true } },
-          },
-        }, // Ambil info produk varian
-      },
-      orderBy: { updatedAt: 'desc' },
+      ...prismaArgs,
+      include: StockInclude,
     });
   }
 

@@ -36,7 +36,6 @@ export function deleteUploadedFile(fileUrl: string): void {
   // Gabungkan dengan direktori upload fisik
   const filePath = path.join(__dirname, '..', 'uploads', relativePath);
 
-  console.log('Cek path file:', filePath);
   // Periksa dan hapus file
   fs.access(filePath, fs.constants.F_OK, (err) => {
     if (!err) {

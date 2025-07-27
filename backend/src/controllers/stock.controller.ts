@@ -6,14 +6,25 @@ import {
   getStockHistoryParamsSchema,
   paginationQuerySchema,
 } from '@/validations/stock.validation';
+import { createQueryOptions } from '@/helpers/prisma.helper';
+import db from '@/configs/db.config';
+import { ResponseHelper } from '@/helpers/response.helper';
 
 class StockController {
   public getAll = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const stocks = await StockService.findAll();
-      res
-        .status(200)
-        .json({ success: true, message: 'Data stok berhasil diambil', stocks });
+      const { prismaArgs, pagination } = await createQueryOptions(
+        db.stock,
+        req.query,
+        'updatedAt'
+      );
+
+      const stocks = await StockService.findAll(prismaArgs);
+      ResponseHelper.success(res, {
+        data: stocks,
+        pagination,
+        message: 'Berhasil mendapatkan data stock',
+      });
     } catch (error) {
       next(error);
     }

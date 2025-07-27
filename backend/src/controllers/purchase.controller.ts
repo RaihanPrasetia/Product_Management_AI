@@ -4,6 +4,9 @@ import {
   createPurchaseSchema,
   updatePurchaseSchema,
 } from '@/validations/purchase.validation';
+import db from '@/configs/db.config';
+import { createQueryOptions } from '@/helpers/prisma.helper';
+import { ResponseHelper } from '@/helpers/response.helper';
 
 class PurchaseController {
   public create = async (req: Request, res: Response, next: NextFunction) => {
@@ -25,8 +28,16 @@ class PurchaseController {
 
   public getAll = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const purchases = await PurchaseService.findAll();
-      res.status(200).json({ success: true, purchases });
+      const { prismaArgs, pagination } = await createQueryOptions(
+        db.purchase,
+        req.query
+      );
+      const purchases = await PurchaseService.findAll(prismaArgs);
+      ResponseHelper.success(res, {
+        data: purchases,
+        pagination,
+        message: 'Berhasil mendapatkan data brand',
+      });
     } catch (error) {
       next(error);
     }

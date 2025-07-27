@@ -1,11 +1,29 @@
 // src/services/product.service.ts
 import db from '@/configs/db.config';
-import { AppError } from '@/helpers/error.helper';
-import { Prisma, ProductType } from '@prisma/client';
+import { AppError } from '@/helpers/response.helper';
 import {
   CreateProductInput,
   UpdateProductInput,
 } from '@/validations/product.validation';
+import { Prisma } from '@prisma/client';
+
+export const productInclude = {
+  category: {
+    select: { name: true, id: true },
+  },
+  brand: {
+    select: { name: true, id: true },
+  },
+  discounts: {
+    select: { name: true, id: true, value: true, type: true },
+  },
+  stock: true,
+  productVariants: { include: { stock: true, variant: true } },
+};
+
+export type ProductWithRelations = Prisma.ProductGetPayload<{
+  include: typeof productInclude;
+}>;
 
 class ProductService {
   // Method untuk membuat produk
@@ -55,38 +73,20 @@ class ProductService {
   }
 
   // Method untuk mengambil semua produk
-  public async findAll(options?: { includeDeleted?: boolean }) {
-    const where: Prisma.ProductWhereInput = {};
-
-    // Jika opsi 'includeDeleted' true, tambahkan flag kustom ke 'where'
-    // Middleware akan membaca flag ini dan menghapus filter `deletedAt: null`
-    if (options?.includeDeleted) {
-      (where as any).includeDeleted = true;
-    }
-    return db.product.findMany({
-      where,
-      include: {
-        category: true,
-        brand: true,
-        discounts: true,
-        stock: true,
-        productVariants: { include: { stock: true, variant: true } },
-      },
-      orderBy: { createdAt: 'desc' },
+  public async findAll(prismaArgs: any): Promise<ProductWithRelations[]> {
+    const products = await db.product.findMany({
+      ...prismaArgs,
+      include: productInclude,
     });
+
+    return products as unknown as ProductWithRelations[];
   }
 
   // Method untuk mengambil produk by ID
   public async findById(id: string) {
-    const product = await db.product.findFirst({
-      where: { id, includeDeleted: true } as any,
-      include: {
-        category: true,
-        brand: true,
-        discounts: true,
-        stock: true,
-        productVariants: { include: { stock: true, variant: true } },
-      },
+    const product = await db.product.findUnique({
+      where: { id } as any,
+      include: productInclude,
     });
 
     if (!product) {
@@ -214,7 +214,7 @@ class ProductService {
    */
   public async restore(id: string) {
     const product = await db.product.findFirst({
-      where: { id, includeDeleted: true } as any,
+      where: { id } as any,
     });
 
     if (!product) {

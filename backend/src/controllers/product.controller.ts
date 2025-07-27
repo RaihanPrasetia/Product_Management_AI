@@ -5,7 +5,9 @@ import {
   createProductSchema,
   updateProductSchema,
 } from '@/validations/product.validation';
-import { success } from 'zod';
+import db from '@/configs/db.config';
+import { createQueryOptions } from '@/helpers/prisma.helper';
+import { ResponseHelper } from '@/helpers/response.helper';
 
 class ProductController {
   // Gunakan arrow function untuk auto-binding `this` context
@@ -23,22 +25,18 @@ class ProductController {
 
   public getAll = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { includeDeleted } = req.query;
+      // -> FIX: Gunakan helper untuk memproses req.query
+      const { prismaArgs, pagination } = await createQueryOptions(
+        db.product,
+        req.query
+      );
 
-      // Siapkan options untuk service
-      const options = {
-        // Konversi string "true" dari query menjadi boolean
-        includeDeleted: includeDeleted === 'true',
-      };
+      const products = await ProductService.findAll(prismaArgs);
 
-      // Panggil service dengan options
-      const products = await ProductService.findAll(options);
-
-      res.status(200).json({
-        success: true,
+      ResponseHelper.success(res, {
+        data: products,
+        pagination,
         message: 'Berhasil mendapatkan data produk',
-        result: products.length,
-        products,
       });
     } catch (error) {
       next(error);
@@ -52,7 +50,7 @@ class ProductController {
       res.status(200).json({
         success: true,
         message: 'Berhasil mendapatkan data product',
-        product,
+        data: product,
       });
     } catch (error) {
       next(error);

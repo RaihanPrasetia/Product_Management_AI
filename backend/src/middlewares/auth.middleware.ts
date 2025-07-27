@@ -4,7 +4,7 @@ import { verifyToken } from '@/helpers/jwt.helper';
 import { TokenPayload } from '@/types/payload.type'; // Asumsikan PasswordResetPayload tidak dipakai di sini
 import { Request, Response, NextFunction } from 'express';
 import db from '@/configs/db.config';
-import { AppError } from '@/helpers/error.helper';
+import { AppError } from '@/helpers/response.helper';
 
 // Perbaikan pada jwtAuth
 export const jwtAuth = async (

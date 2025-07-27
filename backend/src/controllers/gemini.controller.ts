@@ -1,10 +1,11 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Request, Response, NextFunction } from 'express';
-import { productTools } from '@/services/gemini.tools'; // -> 1. Impor tools Anda
-import productService from '@/services/product.service'; // -> 2. Impor service yang akan dijalankan
+import { FindProductsArgs, productTools } from '@/services/gemini.tools'; // -> 1. Impor tools Anda
 import { systemInstruction } from '@/helpers/instruction.helper';
 import stockService from '@/services/stock.service';
-// import stockService from '@/services/stock.service'; // (Contoh jika Anda punya service stok)
+import db from '@/configs/db.config';
+import { createQueryOptions } from '@/helpers/prisma.helper';
+import productService from '@/services/product.service';
 
 const GEMINI_API_KEY =
   process.env.GEMINI_API_KEY || 'MASUKKAN_API_KEY_ANDA_DI_SINI';
@@ -57,7 +58,38 @@ class GeminiController {
 
       switch (call.name) {
         case 'find_products': {
-          const products = await productService.findAll(call.args);
+          const args = call.args as FindProductsArgs;
+
+          const { prismaArgs } = await createQueryOptions(
+            db.product,
+            args // Argumen dari AI memiliki struktur yang sama dengan req.query
+          );
+
+          const productsFromDb = await productService.findAll(prismaArgs);
+          // -> FIX: Lakukan kalkulasi totalStock di sini
+          const products = productsFromDb.map((p) => {
+            // Kalkulasi total stok
+            const totalStock =
+              p.type === 'SIMPLE'
+                ? p.stock?.quantity ?? 0
+                : p.productVariants.reduce(
+                    (sum, variant) => sum + (variant.stock?.quantity ?? 0),
+                    0
+                  );
+
+            // Sekarang TypeScript tidak akan error
+            return {
+              id: p.id,
+              name: p.name,
+              sku: p.sku,
+              price: p.price,
+              type: p.type,
+              category: p.category.name, // Ini sekarang aman
+              brand: p.brand.name, // Ini sekarang aman
+              totalStock: totalStock, // Gunakan hasil kalkulasi
+            };
+          });
+
           functionResponse = { products };
           break;
         }

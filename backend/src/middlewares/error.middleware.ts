@@ -1,4 +1,4 @@
-import { AppError } from '@/helpers/error.helper';
+import { AppError } from '@/helpers/response.helper';
 import { Request, Response, NextFunction } from 'express';
 
 export const globalErrorHandler = (

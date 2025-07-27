@@ -2,14 +2,36 @@
 
 import { FunctionDeclarationsTool, SchemaType } from '@google/generative-ai';
 
+// Interface untuk find_products (sudah benar)
+export interface FindProductsArgs {
+  name?: string;
+  categoryName?: string;
+  brandName?: string;
+  type?: 'SIMPLE' | 'VARIABLE';
+}
+
+// -> SARAN: Buat juga interface untuk create_product agar type-safe di controller
+export interface CreateProductArgs {
+  name: string;
+  description?: string;
+  productType: 'SIMPLE' | 'VARIABLE';
+  categoryId: string;
+  brandId: string;
+  sku?: string;
+  price?: number;
+  initialStock?: number;
+  variants?: {
+    value: string;
+    sku: string;
+    price?: number;
+    variantId: string;
+    initialStock: number;
+  }[];
+}
+
 export const productTools: FunctionDeclarationsTool[] = [
   {
     functionDeclarations: [
-      /**
-       * Tool untuk mencari dan memfilter produk.
-       * Contoh: "Cari semua kemeja dari merek X"
-       * "Tampilkan produk simpel saja"
-       */
       {
         name: 'find_products',
         description:
@@ -17,19 +39,22 @@ export const productTools: FunctionDeclarationsTool[] = [
         parameters: {
           type: SchemaType.OBJECT,
           properties: {
-            nameContains: {
+            name: {
               type: SchemaType.STRING,
               description: 'Filter produk yang namanya mengandung teks ini.',
             },
-            categoryId: {
+            categoryName: {
               type: SchemaType.STRING,
-              description: 'Filter produk berdasarkan ID kategori.',
+              description:
+                'Filter produk berdasarkan NAMA kategori (misal: "Aksesoris").',
             },
-            brandId: {
+            brandName: {
               type: SchemaType.STRING,
-              description: 'Filter produk berdasarkan ID merek.',
+              description:
+                'Filter produk berdasarkan NAMA merek (misal: "Optik Seis").',
             },
-            productType: {
+            // -> FIX 1: Ganti nama 'ProductType' menjadi 'productType' (camelCase)
+            type: {
               type: SchemaType.STRING,
               description:
                 "Filter berdasarkan tipe produk: 'SIMPLE' atau 'VARIABLE'.",
@@ -39,10 +64,6 @@ export const productTools: FunctionDeclarationsTool[] = [
           },
         },
       },
-      /**
-       * Tool untuk mendapatkan informasi stok berdasarkan SKU.
-       * Contoh: "Berapa stok untuk SKU 'KEMEJA-BIRU-L'?"
-       */
       {
         name: 'get_stock_report_by_product',
         description:
@@ -59,11 +80,6 @@ export const productTools: FunctionDeclarationsTool[] = [
           required: ['productIdentifier'],
         },
       },
-      /**
-       * Tool untuk membuat produk baru.
-       * Contoh: "Buat produk baru: Kemeja Polos, tipe SIMPLE, SKU 'KMP-01', harga 150000, stok awal 50."
-       * "Tambahkan produk 'Sepatu Lari' tipe VARIABLE dengan varian warna Merah dan Biru."
-       */
       {
         name: 'create_product',
         description: 'Membuat produk baru, baik tipe SIMPLE maupun VARIABLE.',
@@ -75,7 +91,7 @@ export const productTools: FunctionDeclarationsTool[] = [
               type: SchemaType.STRING,
               description: 'Deskripsi produk.',
             },
-            type: {
+            productType: {
               type: SchemaType.STRING,
               description: "Tipe produk: 'SIMPLE' atau 'VARIABLE'.",
               format: 'enum',
@@ -89,7 +105,6 @@ export const productTools: FunctionDeclarationsTool[] = [
               type: SchemaType.STRING,
               description: 'ID Merek produk.',
             },
-            // Fields untuk produk SIMPLE
             sku: {
               type: SchemaType.STRING,
               description: 'SKU, wajib jika tipe SIMPLE.',
@@ -102,7 +117,6 @@ export const productTools: FunctionDeclarationsTool[] = [
               type: SchemaType.NUMBER,
               description: 'Jumlah stok awal, untuk tipe SIMPLE.',
             },
-            // Fields untuk produk VARIABLE
             variants: {
               type: SchemaType.ARRAY,
               description: 'Daftar varian, wajib jika tipe VARIABLE.',
@@ -135,7 +149,8 @@ export const productTools: FunctionDeclarationsTool[] = [
               },
             },
           },
-          required: ['name', 'type', 'categoryId', 'brandId'],
+          // -> Perbarui 'required' sesuai dengan nama baru
+          required: ['name', 'productType', 'categoryId', 'brandId'],
         },
       },
     ],

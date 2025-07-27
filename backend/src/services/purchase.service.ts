@@ -1,6 +1,6 @@
 import db from '@/configs/db.config';
-import { AppError } from '@/helpers/error.helper';
-import { StockHistoryType } from '@prisma/client';
+import { AppError } from '@/helpers/response.helper';
+import { Prisma, StockHistoryType } from '@prisma/client';
 import { z } from 'zod';
 import {
   createPurchaseSchema,
@@ -9,6 +9,22 @@ import {
 
 type CreatePurchaseInput = z.infer<typeof createPurchaseSchema>;
 
+const purchaseInclude = {
+  supplier: { select: { id: true, name: true } },
+  items: {
+    select: {
+      id: true,
+      productId: true,
+      productVariantId: true,
+      quantity: true,
+      price: true,
+    },
+  },
+};
+
+// export type PurchaseWithRelation = Prisma.PurchaseGetPayload<{
+//   include: typeof purchaseInclude;
+// }>;
 class PurchaseService {
   /**
    * Membuat catatan pembelian baru, mengupdate stok, dan mencatat riwayat.
@@ -81,24 +97,13 @@ class PurchaseService {
   /**
    * Mengambil semua data pembelian
    */
-  public async findAll() {
-    return db.purchase.findMany({
-      where: { deletedAt: null },
-      include: {
-        supplier: { select: { id: true, name: true } },
-        items: {
-          select: {
-            id: true,
-            productId: true,
-            productVariantId: true,
-            quantity: true,
-            price: true,
-          },
-        },
-        _count: { select: { items: true } },
-      },
-      orderBy: { purchaseDate: 'desc' },
+  public async findAll(prismaArgs: any) {
+    const suppliers = db.purchase.findMany({
+      ...prismaArgs,
+      include: purchaseInclude,
     });
+
+    return suppliers;
   }
 
   /**

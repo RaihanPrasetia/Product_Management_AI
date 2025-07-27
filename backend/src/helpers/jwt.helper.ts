@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { AppError } from './error.helper';
+import { AppError } from './response.helper';
 import {
   PasswordResetPayload,
   TokenPayload,

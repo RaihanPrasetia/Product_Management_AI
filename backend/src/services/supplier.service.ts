@@ -1,5 +1,5 @@
 import db from '@/configs/db.config';
-import { AppError } from '@/helpers/error.helper';
+import { AppError } from '@/helpers/response.helper';
 import { z } from 'zod';
 import { createSupplierSchema } from '@/validations/supplier.validation';
 
@@ -12,16 +12,15 @@ class SupplierService {
     });
   }
 
-  public async findAll() {
+  public async findAll(prismaArgs: any) {
     return db.supplier.findMany({
-      where: { deletedAt: null },
-      orderBy: { name: 'asc' },
+      ...prismaArgs,
     });
   }
 
   public async findById(id: string) {
     const supplier = await db.supplier.findUnique({
-      where: { id, deletedAt: null },
+      where: { id },
     });
     if (!supplier) {
       throw new AppError('Supplier tidak ditemukan', 404);
@@ -42,6 +41,15 @@ class SupplierService {
     return db.supplier.update({
       where: { id },
       data: { deletedAt: new Date() },
+    });
+  }
+  public async restore(id: string) {
+    await this.findById(id); // Memastikan kategori ada sebelum dihapus
+    return db.supplier.update({
+      where: { id },
+      data: {
+        deletedAt: null,
+      },
     });
   }
 }

@@ -3,7 +3,7 @@ import { LoginRequest, RegisterRequest } from '@/types/auth.type';
 import db from '@/configs/db.config';
 import { UserData } from '@/types/payload.type';
 import { generateToken } from '@/helpers/jwt.helper';
-import { AppError } from '@/helpers/error.helper';
+import { AppError } from '@/helpers/response.helper';
 
 interface LoginResult {
   token: string;

@@ -4,6 +4,9 @@ import {
   createCategorySchema,
   updateCategorySchema,
 } from '@/validations/category.validation';
+import db from '@/configs/db.config';
+import { createQueryOptions } from '@/helpers/prisma.helper';
+import { ResponseHelper } from '@/helpers/response.helper';
 
 class CategoryController {
   public create = async (req: Request, res: Response, next: NextFunction) => {
@@ -22,8 +25,16 @@ class CategoryController {
 
   public getAll = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const categories = await CategoryService.findAll();
-      res.status(200).json({ success: true, categories });
+      const { prismaArgs, pagination } = await createQueryOptions(
+        db.category,
+        req.query
+      );
+      const categories = await CategoryService.findAll(prismaArgs);
+      ResponseHelper.success(res, {
+        data: categories,
+        pagination,
+        message: 'Berhasil mendapatkan data kategori',
+      });
     } catch (error) {
       next(error);
     }

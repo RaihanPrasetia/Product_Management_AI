@@ -1,5 +1,5 @@
 import db from '@/configs/db.config';
-import { AppError } from '@/helpers/error.helper';
+import { AppError } from '@/helpers/response.helper';
 
 class CategoryService {
   public async create(
@@ -11,10 +11,9 @@ class CategoryService {
     });
   }
 
-  public async findAll() {
+  public async findAll(prismaArgs: any) {
     return db.category.findMany({
-      where: { deletedAt: null },
-      orderBy: { name: 'asc' },
+      ...prismaArgs,
     });
   }
 

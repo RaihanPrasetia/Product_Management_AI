@@ -1,5 +1,5 @@
 import db from '@/configs/db.config';
-import { AppError } from '@/helpers/error.helper';
+import { AppError } from '@/helpers/response.helper';
 
 class BrandService {
   public async create(
@@ -11,16 +11,15 @@ class BrandService {
     });
   }
 
-  public async findAll() {
+  public async findAll(prismaArgs: any) {
     return db.brand.findMany({
-      where: { deletedAt: null },
-      orderBy: { name: 'asc' },
+      ...prismaArgs,
     });
   }
 
   public async findById(id: string) {
     const brand = await db.brand.findUnique({
-      where: { id, deletedAt: null },
+      where: { id },
     });
     if (!brand) {
       throw new AppError('Merk tidak ditemukan', 404);
@@ -41,6 +40,15 @@ class BrandService {
     return db.brand.update({
       where: { id },
       data: { deletedAt: new Date() },
+    });
+  }
+  public async restore(id: string) {
+    await this.findById(id); // Memastikan kategori ada sebelum dihapus
+    return db.brand.update({
+      where: { id },
+      data: {
+        deletedAt: null,
+      },
     });
   }
 }

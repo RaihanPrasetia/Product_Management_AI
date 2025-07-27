@@ -8,6 +8,7 @@ const router = Router();
 router.post('/', checkRole(['ADMIN']), variantController.create);
 router.patch('/:id', checkRole(['ADMIN']), variantController.update);
 router.delete('/:id', checkRole(['ADMIN']), variantController.delete);
+router.post('/:id/restore', checkRole(['ADMIN']), variantController.restore);
 
 // Rute publik untuk melihat data
 router.get('/', variantController.getAll);

@@ -5,6 +5,9 @@ import {
   updateVariantSchema,
 } from '@/validations/variant.validation';
 import { success } from 'zod';
+import db from '@/configs/db.config';
+import { ResponseHelper } from '@/helpers/response.helper';
+import { createQueryOptions } from '@/helpers/prisma.helper';
 
 class VariantController {
   public create = async (req: Request, res: Response, next: NextFunction) => {
@@ -23,8 +26,16 @@ class VariantController {
 
   public getAll = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const variants = await VariantService.findAll();
-      res.status(200).json({ success: true, variants });
+      const { prismaArgs, pagination } = await createQueryOptions(
+        db.variant,
+        req.query
+      );
+      const variants = await VariantService.findAll(prismaArgs);
+      ResponseHelper.success(res, {
+        data: variants,
+        pagination,
+        message: 'Berhasil mendapatkan data variant',
+      });
     } catch (error) {
       next(error);
     }
@@ -62,6 +73,19 @@ class VariantController {
       res
         .status(200)
         .json({ success: true, message: 'Varian berhasil dihapus' });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public restore = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      const variant = await VariantService.restore(id);
+      ResponseHelper.success(res, {
+        data: variant,
+        message: 'Berhasil mendapatkan data variant',
+      });
     } catch (error) {
       next(error);
     }

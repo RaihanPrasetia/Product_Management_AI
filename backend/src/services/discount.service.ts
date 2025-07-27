@@ -1,5 +1,5 @@
 import db from '@/configs/db.config';
-import { AppError } from '@/helpers/error.helper';
+import { AppError } from '@/helpers/response.helper';
 import { DiscountType } from '@prisma/client';
 
 class DiscountService {

@@ -4,6 +4,9 @@ import {
   createBrandSchema,
   updateBrandSchema,
 } from '@/validations/brand.validation';
+import { createQueryOptions } from '@/helpers/prisma.helper';
+import db from '@/configs/db.config';
+import { ResponseHelper } from '@/helpers/response.helper';
 
 class BrandController {
   public create = async (req: Request, res: Response, next: NextFunction) => {
@@ -22,8 +25,16 @@ class BrandController {
 
   public getAll = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const brands = await BrandService.findAll();
-      res.status(200).json({ success: true, brands });
+      const { prismaArgs, pagination } = await createQueryOptions(
+        db.brand,
+        req.query
+      );
+      const brands = await BrandService.findAll(prismaArgs);
+      ResponseHelper.success(res, {
+        data: brands,
+        pagination,
+        message: 'Berhasil mendapatkan data brand',
+      });
     } catch (error) {
       next(error);
     }
@@ -59,6 +70,19 @@ class BrandController {
       const { id } = req.params;
       await BrandService.delete(id);
       res.status(200).json({ success: true, message: 'Merk berhasil dihapus' });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public restore = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      const brand = await BrandService.restore(id);
+      ResponseHelper.success(res, {
+        data: brand,
+        message: 'Berhasil mendapatkan data brand',
+      });
     } catch (error) {
       next(error);
     }
