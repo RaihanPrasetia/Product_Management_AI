@@ -13,9 +13,9 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { useForm, Controller } from 'react-hook-form';
-import { CategoryRequest, Category } from '@/utils/types/CategoryType';
+import { CategoryRequest, Category } from '@/types/CategoryType';
 import { useNotification } from '@/hooks/useNotification';
-import { categoryService } from '@/services/category/categoryService';
+import { categoryService } from '@/services/categoryService';
 
 interface CategoryDrawerProps {
   open: boolean;
@@ -67,15 +67,12 @@ export const CategoryDrawer = ({
   const onSubmit = async (data: CategoryRequest) => {
     try {
       setSubmitting(true);
-      console.log('Submitting form with data:', data);
 
       let response;
 
       if (editMode && category) {
         // Update existing category
-        console.log('Updating category ID:', category.id);
         response = await categoryService.update(category.id, data);
-        console.log('Update response:', response);
 
         if (response.success) {
           showNotification('Kategori berhasil diperbarui', 'success');
@@ -90,7 +87,6 @@ export const CategoryDrawer = ({
       } else {
         // Create new category
         response = await categoryService.create(data);
-        console.log('Create response:', response);
 
         if (response.success) {
           showNotification('Kategori berhasil dibuat', 'success');

@@ -1,3 +1,7 @@
+import { ControlledSelect } from '@/components/ui/form/ControlledSelect';
+import { ControlledTextField } from '@/components/ui/form/ControlledTextField';
+import { Brand } from '@/types/BrandType';
+import { Category } from '@/types/CategoryType';
 import {
   Stack,
   FormControl,
@@ -9,9 +13,6 @@ import {
   Divider,
 } from '@mui/material';
 import { Control, Controller } from 'react-hook-form';
-import { Category, Brand } from '@/utils/types/ProductType';
-import { ControlledSelect } from '@/components/form/ControlledSelect';
-import { ControlledTextField } from '@/components/form/ControlledTextField';
 
 interface Props {
   control: Control<any>;

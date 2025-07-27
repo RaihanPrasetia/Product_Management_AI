@@ -15,36 +15,33 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { ConfirmationDialog } from '../../ui/ConfirmationDialog';
 import { FaSpinner } from 'react-icons/fa';
-import Pagination from '../../ui/Pagination';
+import Pagination from '../../ui/CustomePagination';
 import CustomeFilter from '../../ui/CustomeFilter';
-import { Supplier } from '@/utils/types/SupplierType';
+import { Supplier } from '@/types/SupplierType';
 import formattedDate from '@/utils/formattedDate'; // <-- Nama import diperbaiki
+import { useSupplierStore } from '@/stores/supplier.store';
+import { useNotification } from '@/hooks/useNotification';
+import { SortableHeaderCell } from '@/components/ui/SortableHeaderCell';
+import { Restore } from '@mui/icons-material';
 
 type SupplierListProps = {
   suppliers: Supplier[];
   loading: boolean;
   onEdit: (supplier: Supplier) => void;
-  onDelete: (id: string) => void;
 };
 
 export const SupplierList = ({
   suppliers,
   loading,
   onEdit,
-  onDelete,
 }: SupplierListProps) => {
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [rowsPerPage, setRowsPerPage] = useState<number>(5);
-  const [searchTerm, setSearchTerm] = useState<string>('');
+  const { deleteData, restoreData, pagination, setFilter, filters, setSort } =
+    useSupplierStore();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(
     null
   );
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-    setCurrentPage(1);
-  };
+  const { showNotification } = useNotification();
 
   const handleDeleteClick = (supplier: Supplier) => {
     setSupplierToDelete(supplier);
@@ -53,25 +50,10 @@ export const SupplierList = ({
 
   const handleConfirmDelete = () => {
     if (supplierToDelete) {
-      onDelete(supplierToDelete.id);
+      deleteData(supplierToDelete.id, showNotification);
       setDeleteDialogOpen(false);
       setSupplierToDelete(null);
     }
-  };
-
-  const filteredSuppliers = suppliers.filter((supplier) =>
-    supplier.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const totalPages = Math.ceil(filteredSuppliers.length / rowsPerPage);
-
-  const paginatedSuppliers = filteredSuppliers.slice(
-    (currentPage - 1) * rowsPerPage,
-    currentPage * rowsPerPage
-  );
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
   };
 
   if (loading) {
@@ -86,30 +68,51 @@ export const SupplierList = ({
   return (
     <>
       <Box sx={{ width: '100%' }}>
-        <CustomeFilter
-          pagination={rowsPerPage}
-          setPagination={(value) => {
-            setRowsPerPage(value);
-            setCurrentPage(1);
-          }}
-          searchTerm={searchTerm}
-          handleSearchChange={handleSearchChange}
-        />
+        <CustomeFilter filters={filters} setFilter={setFilter} />
         <TableContainer>
           <Table aria-label="supplier table">
             <TableHead>
               <TableRow>
                 <TableCell sx={{ width: '5%' }}>No</TableCell>
-                <TableCell sx={{ width: '25%' }}>Supplier</TableCell>
-                <TableCell sx={{ width: '30%' }}>Info Kontak</TableCell>
-                <TableCell sx={{ width: '20%' }}>Update Terakhir</TableCell>
+                <SortableHeaderCell
+                  sortKey="name"
+                  orderBy={filters.orderBy}
+                  orderDirection={filters.orderDirection}
+                  onSort={setSort}
+                >
+                  Supplier
+                </SortableHeaderCell>
+                <SortableHeaderCell
+                  sortKey="phone"
+                  orderBy={filters.orderBy}
+                  orderDirection={filters.orderDirection}
+                  onSort={setSort}
+                >
+                  Phone
+                </SortableHeaderCell>
+                <SortableHeaderCell
+                  sortKey="address"
+                  orderBy={filters.orderBy}
+                  orderDirection={filters.orderDirection}
+                  onSort={setSort}
+                >
+                  Address
+                </SortableHeaderCell>
+                <SortableHeaderCell
+                  sortKey="updatedAt"
+                  orderBy={filters.orderBy}
+                  orderDirection={filters.orderDirection}
+                  onSort={setSort}
+                >
+                  Last Update
+                </SortableHeaderCell>
                 <TableCell sx={{ width: '20%' }} align="right">
                   Actions
                 </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {paginatedSuppliers.map((supplier, index) => (
+              {suppliers.map((supplier, index) => (
                 <TableRow
                   key={supplier.id}
                   hover
@@ -124,7 +127,9 @@ export const SupplierList = ({
                   }}
                 >
                   <TableCell>
-                    {(currentPage - 1) * rowsPerPage + index + 1}
+                    {(pagination.currentPage - 1) * pagination.limit +
+                      index +
+                      1}
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" fontWeight="medium">
@@ -135,36 +140,52 @@ export const SupplierList = ({
                     <Typography variant="body2" color="text.secondary">
                       {supplier.phone || '-'}
                     </Typography>
+                  </TableCell>
+                  <TableCell>
                     <Typography variant="caption" color="text.secondary">
                       {supplier.address || '-'}
                     </Typography>
                   </TableCell>
                   <TableCell>{formattedDate(supplier.updatedAt)}</TableCell>
                   <TableCell align="right">
-                    <>
-                      <Tooltip title="Edit">
+                    {supplier.deletedAt ? (
+                      <Tooltip title="Restore">
                         <IconButton
                           size="small"
-                          color="primary"
-                          onClick={() => onEdit(supplier)}
+                          color="warning"
+                          onClick={() =>
+                            restoreData(supplier.id, showNotification)
+                          }
                         >
-                          <EditIcon />
+                          <Restore />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Delete">
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => handleDeleteClick(supplier)}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Tooltip>
-                    </>
+                    ) : (
+                      <>
+                        <Tooltip title="Edit">
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => onEdit(supplier)}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete">
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => handleDeleteClick(supplier)}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Tooltip>
+                      </>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
-              {filteredSuppliers.length === 0 && (
+              {suppliers.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} align="center">
                     No suppliers found
@@ -176,11 +197,7 @@ export const SupplierList = ({
         </TableContainer>
 
         <Box className="w-full flex justify-end items-center py-4 gap-2">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-          />
+          <Pagination pagination={pagination} setFilter={setFilter} />
         </Box>
       </Box>
 

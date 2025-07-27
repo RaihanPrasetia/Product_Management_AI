@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import ContentBody from '@/components/ui/content/ContentBody';
 import { ContentHead } from '@/components/ui/content/ContentHead';
 
@@ -8,42 +8,20 @@ import { useNotification } from '@/hooks/useNotification';
 import { ProductList } from '@/components/admin/products/ProductList';
 import { ProductDrawer } from '@/components/admin/products/ProductDrawer';
 import { ImportExport } from '@mui/icons-material';
-import { Product, ProductFilter } from '@/utils/types/ProductType';
-import { productService } from '@/services/product/productService';
+import { Product } from '@/types/ProductType';
+import { productService } from '@/services/productService';
+import { useProductStore } from '@/stores/product.store';
 
 export default function ProductPage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const { fetchData, data, loading } = useProductStore();
   const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
   const [editMode, setEditMode] = useState<boolean>(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const { showNotification } = useNotification(); // Use the notification hook
-  const [filter, setFilter] = useState<ProductFilter>('active');
-  const fetchProducts = useCallback(async () => {
-    try {
-      setLoading(true);
-
-      let options = {};
-      if (filter === 'all') {
-        options = { includeDeleted: true };
-      } else {
-        options = { includeDeleted: false };
-      }
-
-      const response = await productService.getAll(options);
-      setProducts(response.products);
-    } catch (error) {
-      const msg =
-        error instanceof Error ? error.message : 'Failed to fetch products';
-      showNotification(msg, 'error');
-    } finally {
-      setLoading(false);
-    }
-  }, [filter, showNotification]);
 
   useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    fetchData();
+  }, [fetchData]);
 
   const handleOpenDrawer = (mode: 'add' | 'edit', product?: Product) => {
     if (mode === 'edit' && product) {
@@ -61,31 +39,6 @@ export default function ProductPage() {
     setSelectedProduct(null);
   };
 
-  const handleDeleteProduct = async (id: string) => {
-    try {
-      await productService.delete(id);
-      showNotification('Produk berhasil dihapus', 'success');
-      fetchProducts();
-    } catch (error) {
-      showNotification(
-        error instanceof Error ? error.message : 'Failed to delete product',
-        'error'
-      );
-    }
-  };
-  const handleRestore = async (id: string) => {
-    try {
-      await productService.restore(id);
-      showNotification('Produk berhasil pulihkan', 'success');
-      fetchProducts();
-    } catch (error) {
-      showNotification(
-        error instanceof Error ? error.message : 'Failed to delete product',
-        'error'
-      );
-    }
-  };
-
   const handleImportProduct = () => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -101,7 +54,7 @@ export default function ProductPage() {
       try {
         await productService.import(formData); // Buat di langkah 2
         showNotification('Import produk berhasil', 'success');
-        fetchProducts();
+        fetchData();
       } catch (error) {
         showNotification(
           error instanceof Error ? error.message : 'Gagal import produk',
@@ -136,13 +89,9 @@ export default function ProductPage() {
       </ContentHead>
       <ContentBody>
         <ProductList
-          products={products}
+          products={data}
           loading={loading}
           onEdit={(product) => handleOpenDrawer('edit', product)}
-          onDelete={handleDeleteProduct}
-          onRestore={handleRestore}
-          filter={filter}
-          setFilter={setFilter}
         />
       </ContentBody>
 
@@ -153,7 +102,7 @@ export default function ProductPage() {
         product={selectedProduct}
         onSuccess={() => {
           handleCloseDrawer();
-          fetchProducts();
+          fetchData();
         }}
       />
     </>

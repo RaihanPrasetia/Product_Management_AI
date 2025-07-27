@@ -23,13 +23,13 @@ import {
   SubmitHandler,
 } from 'react-hook-form';
 import { useNotification } from '@/hooks/useNotification';
-import { purchaseService } from '@/services/purchase/purchaseService';
-import { supplierService } from '@/services/supplier/supplierService'; // Asumsi ada
-import { productService } from '@/services/product/productService'; // Asumsi ada
-import { Purchase, PurchaseRequest } from '@/utils/types/PurchaseType';
-import { Supplier } from '@/utils/types/SupplierType';
-import { ControlledTextField } from '@/components/form/ControlledTextField';
-import { ControlledSelect } from '@/components/form/ControlledSelect';
+import { purchaseService } from '@/services/purchaseService';
+import { supplierService } from '@/services/supplierService'; // Asumsi ada
+import { productService } from '@/services/productService'; // Asumsi ada
+import { Purchase, PurchaseRequest } from '@/types/PurchaseType';
+import { Supplier } from '@/types/SupplierType';
+import { ControlledSelect } from '@/components/ui/form/ControlledSelect';
+import { ControlledTextField } from '@/components/ui/form/ControlledTextField';
 
 interface ProductOption {
   value: string; // Format: "product:ID" or "variant:ID"
@@ -58,7 +58,6 @@ export const PurchaseDrawer = ({
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [productOptions, setProductOptions] = useState<ProductOption[]>([]);
 
-  console.log(purchase);
   const { control, handleSubmit, reset, setValue } = useForm<PurchaseRequest>({
     defaultValues: {
       supplierId: '',
@@ -81,11 +80,11 @@ export const PurchaseDrawer = ({
           productService.getAll(),
         ]);
 
-        setSuppliers(supplierRes.suppliers || []);
+        setSuppliers(supplierRes.data || []);
 
         // Ubah data produk & varian menjadi satu list untuk dropdown
         const options: ProductOption[] = [];
-        productRes.products?.forEach((p) => {
+        productRes.data?.forEach((p) => {
           if (p.type === 'SIMPLE') {
             options.push({
               value: `product:${p.id}`,

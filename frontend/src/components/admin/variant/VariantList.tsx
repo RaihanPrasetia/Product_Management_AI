@@ -15,34 +15,31 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { ConfirmationDialog } from '../../ui/ConfirmationDialog';
 import { FaSpinner } from 'react-icons/fa';
-import Pagination from '../../ui/Pagination';
+import Pagination from '../../ui/CustomePagination';
 import CustomeFilter from '../../ui/CustomeFilter';
-import { Variant } from '@/utils/types/VariantType';
+import { Variant } from '@/types/VariantType';
 import formattedDate from '@/utils/formattedDate'; // <-- Nama import diperbaiki
+import { useVariantStore } from '@/stores/variant.store';
+import { useNotification } from '@/hooks/useNotification';
+import { SortableHeaderCell } from '@/components/ui/SortableHeaderCell';
+import { Restore } from '@mui/icons-material';
 
 type VariantListProps = {
   variants: Variant[];
   loading: boolean;
   onEdit: (variant: Variant) => void;
-  onDelete: (id: string) => void;
 };
 
 export const VariantList = ({
   variants,
   loading,
   onEdit,
-  onDelete,
 }: VariantListProps) => {
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [rowsPerPage, setRowsPerPage] = useState<number>(5);
-  const [searchTerm, setSearchTerm] = useState<string>('');
+  const { deleteData, pagination, filters, setFilter, setSort, restoreData } =
+    useVariantStore();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [variantToDelete, setVariantToDelete] = useState<Variant | null>(null);
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-    setCurrentPage(1);
-  };
+  const { showNotification } = useNotification();
 
   const handleDeleteClick = (variant: Variant) => {
     setVariantToDelete(variant);
@@ -51,25 +48,14 @@ export const VariantList = ({
 
   const handleConfirmDelete = () => {
     if (variantToDelete) {
-      onDelete(variantToDelete.id);
+      deleteData(variantToDelete.id, showNotification);
       setDeleteDialogOpen(false);
       setVariantToDelete(null);
     }
   };
 
-  const filteredCategories = variants.filter((variant) =>
-    variant.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const totalPages = Math.ceil(filteredCategories.length / rowsPerPage);
-
-  const paginatedCategories = filteredCategories.slice(
-    (currentPage - 1) * rowsPerPage,
-    currentPage * rowsPerPage
-  );
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+  const handleRestore = (id: string) => {
+    restoreData(id, showNotification);
   };
 
   if (loading) {
@@ -84,30 +70,57 @@ export const VariantList = ({
   return (
     <>
       <Box sx={{ width: '100%' }}>
-        <CustomeFilter
-          pagination={rowsPerPage}
-          setPagination={(value) => {
-            setRowsPerPage(value);
-            setCurrentPage(1);
-          }}
-          searchTerm={searchTerm}
-          handleSearchChange={handleSearchChange}
-        />
+        <CustomeFilter filters={filters} setFilter={setFilter} />
         <TableContainer>
           <Table aria-label="variant table">
             <TableHead>
               <TableRow>
                 <TableCell className="w-[20px]">No</TableCell>
-                <TableCell>Variant</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Created At</TableCell>
-                <TableCell>Last Updated</TableCell>
-                <TableCell>Deleted At</TableCell>
+                <SortableHeaderCell
+                  sortKey="name"
+                  orderBy={filters.orderBy}
+                  orderDirection={filters.orderDirection}
+                  onSort={setSort}
+                >
+                  Variant
+                </SortableHeaderCell>
+                <SortableHeaderCell
+                  sortKey="isActive"
+                  orderBy={filters.orderBy}
+                  orderDirection={filters.orderDirection}
+                  onSort={setSort}
+                >
+                  Status
+                </SortableHeaderCell>
+                <SortableHeaderCell
+                  sortKey="createdAt"
+                  orderBy={filters.orderBy}
+                  orderDirection={filters.orderDirection}
+                  onSort={setSort}
+                >
+                  Create Date
+                </SortableHeaderCell>
+                <SortableHeaderCell
+                  sortKey="updatedAt"
+                  orderBy={filters.orderBy}
+                  orderDirection={filters.orderDirection}
+                  onSort={setSort}
+                >
+                  Last Update
+                </SortableHeaderCell>
+                <SortableHeaderCell
+                  sortKey="deletedAt"
+                  orderBy={filters.orderBy}
+                  orderDirection={filters.orderDirection}
+                  onSort={setSort}
+                >
+                  Deleted Date
+                </SortableHeaderCell>
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {paginatedCategories.map((variant, index) => (
+              {variants.map((variant, index) => (
                 <TableRow
                   key={variant.id}
                   hover
@@ -123,8 +136,9 @@ export const VariantList = ({
                   }}
                 >
                   <TableCell>
-                    {/* Perbaikan penomoran paginasi */}
-                    {(currentPage - 1) * rowsPerPage + index + 1}
+                    {(pagination.currentPage - 1) * pagination.limit +
+                      index +
+                      1}
                   </TableCell>
                   <TableCell>{variant.name}</TableCell>
                   <TableCell>
@@ -148,30 +162,42 @@ export const VariantList = ({
                     {variant.deletedAt ? formattedDate(variant.deletedAt) : '-'}
                   </TableCell>
                   <TableCell align="right">
-                    <>
-                      <Tooltip title="Edit">
+                    {variant.deletedAt ? (
+                      <Tooltip title="Restore">
                         <IconButton
                           size="small"
-                          color="primary"
-                          onClick={() => onEdit(variant)}
+                          color="warning"
+                          onClick={() => handleRestore(variant.id)}
                         >
-                          <EditIcon />
+                          <Restore />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Delete">
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => handleDeleteClick(variant)}
-                        >
-                          <DeleteIcon />
-                        </IconButton>
-                      </Tooltip>
-                    </>
+                    ) : (
+                      <>
+                        <Tooltip title="Edit">
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => onEdit(variant)}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete">
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => handleDeleteClick(variant)}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </Tooltip>
+                      </>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
-              {filteredCategories.length === 0 && (
+              {variants.length === 0 && (
                 <TableRow>
                   {/* Perbaikan colSpan */}
                   <TableCell colSpan={7} align="center">
@@ -184,11 +210,7 @@ export const VariantList = ({
         </TableContainer>
 
         <Box className="w-full flex justify-end items-center py-4 gap-2">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-          />
+          <Pagination pagination={pagination} setFilter={setFilter} />
         </Box>
       </Box>
 

@@ -12,19 +12,15 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { useNotification } from '@/hooks/useNotification';
-import {
-  Product,
-  Category,
-  Brand,
-  VariantDetail,
-  ProductRequest,
-} from '@/utils/types/ProductType';
+import { Product, VariantDetail, ProductRequest } from '@/types/ProductType';
 import { ProductBasicInfo } from './ProductBasicInfo';
 import { ProductVariants } from './ProductVariants';
-import { categoryService } from '@/services/category/categoryService';
-import { brandService } from '@/services/brand/brandService';
-import { variantService } from '@/services/variant/variantService';
-import { productService } from '@/services/product/productService';
+import { categoryService } from '@/services/categoryService';
+import { brandService } from '@/services/brandService';
+import { variantService } from '@/services/variantService';
+import { productService } from '@/services/productService';
+import { Category } from '@/types/CategoryType';
+import { Brand } from '@/types/BrandType';
 
 interface ProductDrawerProps {
   open: boolean;
@@ -78,9 +74,9 @@ export const ProductDrawer = ({
           brandService.getAll(),
           variantService.getAll(),
         ]);
-        if (catRes.categories && brandRes.brands && varRes.variants) {
-          setCategories(catRes.categories);
-          setBrands(brandRes.brands);
+        if (catRes.data && brandRes.data && varRes.variants) {
+          setCategories(catRes.data);
+          setBrands(brandRes.data);
           setVariants(varRes.variants);
           setLoading(false);
         }

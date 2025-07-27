@@ -10,59 +10,70 @@ import {
   Chip,
   Tooltip,
   Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { ConfirmationDialog } from '../../ui/ConfirmationDialog';
 import { FaSpinner } from 'react-icons/fa';
-import Pagination from '../../ui/Pagination';
+import Pagination from '../../ui/CustomePagination';
 import CustomeFilter from '../../ui/CustomeFilter';
 import { formatToRupiah } from '@/utils/priceFormated';
 import { useNavigate } from 'react-router-dom';
-import { Product, ProductFilter } from '@/utils/types/ProductType';
-import { useProductTable } from '@/hooks/useProductTable'; // <-- Impor custom hook
+import { Product } from '@/types/ProductType';
 import fromattedDate from '@/utils/formattedDate';
 import { Restore } from '@mui/icons-material';
+import { useProductStore } from '@/stores/product.store';
+import { useState } from 'react';
+import { useNotification } from '@/hooks/useNotification';
+import { SortableHeaderCell } from '@/components/ui/SortableHeaderCell';
 
 interface ProductListProps {
   products: Product[];
   loading: boolean;
   onEdit: (product: Product) => void;
-  onDelete: (id: string) => void;
-  onRestore: (id: string) => void;
-  filter: ProductFilter; // <-- Terima nilai filter saat ini
-  setFilter: (value: ProductFilter) => void;
 }
 
 export const ProductList = ({
   products,
   loading,
   onEdit,
-  onDelete,
-  onRestore,
-  filter,
-  setFilter,
 }: ProductListProps) => {
   const navigate = useNavigate();
+
   const {
-    currentPage,
-    rowsPerPage,
-    searchTerm,
-    deleteDialogOpen,
-    productToDelete,
-    totalPages,
-    paginatedProducts,
-    handleSearchChange,
-    handleDeleteClick,
-    handleConfirmDelete,
-    handleCancelDelete,
-    handlePageChange,
-    handleRowsPerPageChange,
-  } = useProductTable(products, onDelete);
+    pagination,
+    restoreProduct,
+    filters,
+    setSort,
+    deleteProduct,
+    setFilter,
+  } = useProductStore();
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const { showNotification } = useNotification();
+
+  const handleDeleteClick = (product: Product) => {
+    setProductToDelete(product);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (productToDelete) {
+      deleteProduct(productToDelete.id, showNotification);
+      setDeleteDialogOpen(false);
+      setProductToDelete(null);
+    }
+  };
+
+  const handleRestore = async (id: string) => {
+    await restoreProduct(id, showNotification);
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteDialogOpen(false);
+    setProductToDelete(null);
+  };
 
   const handleToDetail = (id: string) => {
     navigate(`/product/detail?productId=${id}`);
@@ -80,35 +91,44 @@ export const ProductList = ({
   return (
     <>
       <Box sx={{ width: '100%' }}>
-        <CustomeFilter
-          pagination={rowsPerPage}
-          setPagination={handleRowsPerPageChange}
-          searchTerm={searchTerm}
-          handleSearchChange={handleSearchChange}
-        />
-        <div className="flex justify-end items-center my-5">
-          <FormControl sx={{ minWidth: 200 }} size="small">
-            <InputLabel>Filter Status</InputLabel>
-            <Select
-              value={filter}
-              label="Filter Status"
-              onChange={(e) => setFilter(e.target.value as ProductFilter)}
-            >
-              <MenuItem value="active">Produk Aktif</MenuItem>
-              <MenuItem value="all">Semua Produk</MenuItem>
-            </Select>
-          </FormControl>
-        </div>
-
+        <CustomeFilter filters={filters} setFilter={setFilter} />
         <TableContainer>
           <Table aria-label="product table">
             <TableHead>
               <TableRow>
                 <TableCell className="w-[20px]">No</TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>SKU</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>Price</TableCell>
+                <SortableHeaderCell
+                  sortKey="name"
+                  orderBy={filters.orderBy}
+                  orderDirection={filters.orderDirection}
+                  onSort={setSort}
+                >
+                  Name
+                </SortableHeaderCell>
+                <SortableHeaderCell
+                  sortKey="sku"
+                  orderBy={filters.orderBy}
+                  orderDirection={filters.orderDirection}
+                  onSort={setSort}
+                >
+                  SKU
+                </SortableHeaderCell>
+                <SortableHeaderCell
+                  sortKey="type"
+                  orderBy={filters.orderBy}
+                  orderDirection={filters.orderDirection}
+                  onSort={setSort}
+                >
+                  Type
+                </SortableHeaderCell>
+                <SortableHeaderCell
+                  sortKey="price"
+                  orderBy={filters.orderBy}
+                  orderDirection={filters.orderDirection}
+                  onSort={setSort}
+                >
+                  Price
+                </SortableHeaderCell>
                 <TableCell>Stock</TableCell>
                 <TableCell>Category</TableCell>
                 <TableCell>Tanggal Dihapus</TableCell>
@@ -118,14 +138,16 @@ export const ProductList = ({
               </TableRow>
             </TableHead>
             <TableBody>
-              {paginatedProducts.map((product, index) => (
+              {products.map((product, index) => (
                 <TableRow key={product.id} hover>
                   <TableCell>
-                    {(currentPage - 1) * rowsPerPage + index + 1}
+                    {(pagination.currentPage - 1) * pagination.limit +
+                      index +
+                      1}
                   </TableCell>
                   <TableCell>
                     <span
-                      className="text-utama-hover hover:cursor-pointer"
+                      className="text-utama-hover cursor-pointer"
                       onClick={() => handleToDetail(product.id)}
                     >
                       {product.name}
@@ -146,7 +168,15 @@ export const ProductList = ({
                     />
                   </TableCell>
                   <TableCell>{formatToRupiah(Number(product.price))}</TableCell>
-                  <TableCell>{product.totalStock}</TableCell>
+                  <TableCell>
+                    {product.type === 'SIMPLE'
+                      ? product.stock?.quantity ?? 0
+                      : product.productVariants.reduce(
+                          (sum, variant) =>
+                            sum + (variant.stock?.quantity ?? 0),
+                          0
+                        )}
+                  </TableCell>
                   <TableCell>{product.category.name}</TableCell>
                   <TableCell>
                     {product.deletedAt ? fromattedDate(product.deletedAt) : '-'}
@@ -157,7 +187,7 @@ export const ProductList = ({
                         <IconButton
                           size="small"
                           color="warning"
-                          onClick={() => onRestore(product.id)}
+                          onClick={() => handleRestore(product.id)}
                         >
                           <Restore />
                         </IconButton>
@@ -187,7 +217,7 @@ export const ProductList = ({
                   </TableCell>
                 </TableRow>
               ))}
-              {paginatedProducts.length === 0 && (
+              {products.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} align="center">
                     No products found
@@ -199,11 +229,7 @@ export const ProductList = ({
         </TableContainer>
 
         <Box className="w-full flex justify-end items-center py-4 gap-2">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-          />
+          <Pagination pagination={pagination} setFilter={setFilter} />
         </Box>
       </Box>
 

@@ -13,9 +13,9 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { useForm, Controller } from 'react-hook-form';
-import { VariantRequest, Variant } from '@/utils/types/VariantType';
+import { VariantRequest, Variant } from '@/types/VariantType';
 import { useNotification } from '@/hooks/useNotification';
-import { variantService } from '@/services/variant/variantService';
+import { variantService } from '@/services/variantService';
 
 interface VariantDrawerProps {
   open: boolean;
@@ -67,15 +67,12 @@ export const VariantDrawer = ({
   const onSubmit = async (data: VariantRequest) => {
     try {
       setSubmitting(true);
-      console.log('Submitting form with data:', data);
 
       let response;
 
       if (editMode && variant) {
         // Update existing variant
-        console.log('Updating variant ID:', variant.id);
         response = await variantService.update(variant.id, data);
-        console.log('Update response:', response);
 
         if (response.success) {
           showNotification('Kategori berhasil diperbarui', 'success');
@@ -90,7 +87,6 @@ export const VariantDrawer = ({
       } else {
         // Create new variant
         response = await variantService.create(data);
-        console.log('Create response:', response);
 
         if (response.success) {
           showNotification('Kategori berhasil dibuat', 'success');

@@ -23,14 +23,10 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import Content from '@/components/ui/content/Content';
 import { ContentHead } from '@/components/ui/content/ContentHead';
 import { useNotification } from '@/hooks/useNotification';
-import {
-  Dashboard,
-  RecentPurchase,
-  LowStockItem,
-} from '@/utils/types/DashboardType';
+import { Dashboard, RecentPurchase, LowStockItem } from '@/types/DashboardType';
 import { formatToRupiah } from '@/utils/priceFormated';
 import formattedDate from '@/utils/formattedDate';
-import { dashboardService } from '@/services/dashboard/dashboardService';
+import { dashboardService } from '@/services/dashboardService';
 
 // Sub-komponen untuk kartu statistik
 const StatCard = ({

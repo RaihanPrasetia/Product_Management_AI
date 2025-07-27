@@ -25,9 +25,9 @@ import Content from '@/components/ui/content/Content';
 import { ContentHead } from '@/components/ui/content/ContentHead';
 import { Delete } from '@mui/icons-material';
 import { MdArrowBack } from 'react-icons/md';
-import { Product, ProductVariant } from '@/utils/types/ProductType';
+import { Product, ProductVariant } from '@/types/ProductType';
 import formattedDate from '@/utils/formattedDate';
-import { productService } from '@/services/product/productService';
+import { productService } from '@/services/productService';
 
 // Sub-komponen untuk menampilkan informasi utama produk
 const ProductInfo = ({ product }: { product: Product }) => {
@@ -170,7 +170,7 @@ export default function ProductDetail() {
     try {
       setLoading(true);
       const response = await productService.getById(productId); // <-- Diperbaiki
-      setProduct(response.product); // <-- Diperbaiki
+      setProduct(response.data); // <-- Diperbaiki
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Gagal mengambil data produk';

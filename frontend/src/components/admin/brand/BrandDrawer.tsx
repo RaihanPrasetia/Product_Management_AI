@@ -13,9 +13,9 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { useForm, Controller } from 'react-hook-form';
-import { BrandRequest, Brand } from '@/utils/types/BrandType';
+import { BrandRequest, Brand } from '@/types/BrandType';
 import { useNotification } from '@/hooks/useNotification';
-import { brandService } from '@/services/brand/brandService';
+import { brandService } from '@/services/brandService';
 
 interface BrandDrawerProps {
   open: boolean;
@@ -67,20 +67,17 @@ export const BrandDrawer = ({
   const onSubmit = async (data: BrandRequest) => {
     try {
       setSubmitting(true);
-      console.log('Submitting form with data:', data);
 
       let response;
 
       if (editMode && brand) {
         // Update existing brand
-        console.log('Updating brand ID:', brand.id);
         response = await brandService.update(brand.id, data);
-        console.log('Update response:', response);
 
         if (response.success) {
-          showNotification('Kategori berhasil diperbarui', 'success');
-          onSuccess(); // Only call on success
-          onClose(); // Close drawer on success
+          showNotification(response.message, 'success');
+          onSuccess();
+          onClose();
         } else {
           showNotification(
             response.message || 'Gagal memperbarui kategori',
@@ -90,7 +87,6 @@ export const BrandDrawer = ({
       } else {
         // Create new brand
         response = await brandService.create(data);
-        console.log('Create response:', response);
 
         if (response.success) {
           showNotification('Kategori berhasil dibuat', 'success');

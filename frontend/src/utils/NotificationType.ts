@@ -1,4 +1,4 @@
-export type NotificationType = "success" | "error" | "warning" | "info";
+export type NotificationType = 'success' | 'error' | 'warning' | 'info';
 
 export interface Notification {
   id: number;
@@ -7,5 +7,10 @@ export interface Notification {
 }
 
 export interface NotificationContextType {
-  showNotification: (message: string, type?: NotificationType) => void;
+  showNotification: (message: string, type: NotificationType) => void;
 }
+
+export type ShowNotificationFn = (
+  message: string,
+  severity: 'success' | 'error' | 'warning' | 'info'
+) => void;

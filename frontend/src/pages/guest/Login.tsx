@@ -11,36 +11,24 @@ import {
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import authService from '@/services/auth/authService';
+import authService from '@/services/authService';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotification } from '@/hooks/useNotification';
-import ErrorMessage from '@/components/ErrorMessage';
 
 function Login() {
   const { login } = useAuth();
-  const { showNotification } = useNotification();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { showNotification } = useNotification();
 
   const handleTogglePassword = () => setShowPassword(!showPassword);
 
-  const validateEmail = (email: string) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-
-    if (!validateEmail(email)) {
-      setError('Email tidak valid.');
-      return;
-    }
 
     setIsLoading(true);
 
@@ -93,8 +81,6 @@ function Login() {
           >
             Login to your account
           </Typography>
-
-          {error && <ErrorMessage message={error} />}
 
           <form onSubmit={handleSubmit}>
             <TextField

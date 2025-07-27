@@ -15,36 +15,32 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { ConfirmationDialog } from '../../ui/ConfirmationDialog';
 import { FaSpinner } from 'react-icons/fa';
-import Pagination from '../../ui/Pagination';
+import Pagination from '../../ui/CustomePagination';
 import CustomeFilter from '../../ui/CustomeFilter';
-import { Category } from '@/utils/types/CategoryType';
+import { Category } from '@/types/CategoryType';
 import formattedDate from '@/utils/formattedDate'; // <-- Nama import diperbaiki
+import { useCategoryStore } from '@/stores/category.store';
+import { useNotification } from '@/hooks/useNotification';
+import { SortableHeaderCell } from '@/components/ui/SortableHeaderCell';
 
 type CategoryListProps = {
   categories: Category[];
   loading: boolean;
   onEdit: (category: Category) => void;
-  onDelete: (id: string) => void;
 };
 
 export const CategoryList = ({
   categories,
   loading,
   onEdit,
-  onDelete,
 }: CategoryListProps) => {
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [rowsPerPage, setRowsPerPage] = useState<number>(5);
-  const [searchTerm, setSearchTerm] = useState<string>('');
+  const { deleteData, pagination, filters, setSort, setFilter } =
+    useCategoryStore();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(
     null
   );
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-    setCurrentPage(1);
-  };
+  const { showNotification } = useNotification();
 
   const handleDeleteClick = (category: Category) => {
     setCategoryToDelete(category);
@@ -53,25 +49,10 @@ export const CategoryList = ({
 
   const handleConfirmDelete = () => {
     if (categoryToDelete) {
-      onDelete(categoryToDelete.id);
+      deleteData(categoryToDelete.id, showNotification);
       setDeleteDialogOpen(false);
       setCategoryToDelete(null);
     }
-  };
-
-  const filteredCategories = categories.filter((category) =>
-    category.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const totalPages = Math.ceil(filteredCategories.length / rowsPerPage);
-
-  const paginatedCategories = filteredCategories.slice(
-    (currentPage - 1) * rowsPerPage,
-    currentPage * rowsPerPage
-  );
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
   };
 
   if (loading) {
@@ -86,34 +67,60 @@ export const CategoryList = ({
   return (
     <>
       <Box sx={{ width: '100%' }}>
-        <CustomeFilter
-          pagination={rowsPerPage}
-          setPagination={(value) => {
-            setRowsPerPage(value);
-            setCurrentPage(1);
-          }}
-          searchTerm={searchTerm}
-          handleSearchChange={handleSearchChange}
-        />
+        <CustomeFilter filters={filters} setFilter={setFilter} />
         <TableContainer>
           <Table aria-label="category table">
             <TableHead>
               <TableRow>
                 <TableCell className="w-[20px]">No</TableCell>
-                <TableCell>Category</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Created At</TableCell>
-                <TableCell>Last Updated</TableCell>
-                <TableCell>Deleted At</TableCell>
+                <SortableHeaderCell
+                  sortKey="name"
+                  orderBy={filters.orderBy}
+                  orderDirection={filters.orderDirection}
+                  onSort={setSort}
+                >
+                  Category
+                </SortableHeaderCell>
+                <SortableHeaderCell
+                  sortKey="isActive"
+                  orderBy={filters.orderBy}
+                  orderDirection={filters.orderDirection}
+                  onSort={setSort}
+                >
+                  Status
+                </SortableHeaderCell>
+                <SortableHeaderCell
+                  sortKey="createdAt"
+                  orderBy={filters.orderBy}
+                  orderDirection={filters.orderDirection}
+                  onSort={setSort}
+                >
+                  Create Date
+                </SortableHeaderCell>
+                <SortableHeaderCell
+                  sortKey="updatedAt"
+                  orderBy={filters.orderBy}
+                  orderDirection={filters.orderDirection}
+                  onSort={setSort}
+                >
+                  Last Update
+                </SortableHeaderCell>
+                <SortableHeaderCell
+                  sortKey="deletedAt"
+                  orderBy={filters.orderBy}
+                  orderDirection={filters.orderDirection}
+                  onSort={setSort}
+                >
+                  Deleted Date
+                </SortableHeaderCell>
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {paginatedCategories.map((category, index) => (
+              {categories.map((category, index) => (
                 <TableRow
                   key={category.id}
                   hover
-                  // Beri style berbeda untuk data yang sudah dihapus
                   sx={{
                     backgroundColor: category.deletedAt ? '#f7f7f7' : 'inherit',
                     '& .MuiTableCell-root': {
@@ -125,8 +132,9 @@ export const CategoryList = ({
                   }}
                 >
                   <TableCell>
-                    {/* Perbaikan penomoran paginasi */}
-                    {(currentPage - 1) * rowsPerPage + index + 1}
+                    {(pagination.currentPage - 1) * pagination.limit +
+                      index +
+                      1}
                   </TableCell>
                   <TableCell>{category.name}</TableCell>
                   <TableCell>
@@ -175,7 +183,7 @@ export const CategoryList = ({
                   </TableCell>
                 </TableRow>
               ))}
-              {filteredCategories.length === 0 && (
+              {categories.length === 0 && (
                 <TableRow>
                   {/* Perbaikan colSpan */}
                   <TableCell colSpan={7} align="center">
@@ -188,11 +196,7 @@ export const CategoryList = ({
         </TableContainer>
 
         <Box className="w-full flex justify-end items-center py-4 gap-2">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-          />
+          <Pagination pagination={pagination} setFilter={setFilter} />
         </Box>
       </Box>
 

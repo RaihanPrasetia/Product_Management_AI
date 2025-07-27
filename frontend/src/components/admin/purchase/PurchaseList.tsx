@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   Box,
   IconButton,
@@ -13,12 +12,13 @@ import {
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import { FaSpinner } from 'react-icons/fa';
-import Pagination from '../../ui/Pagination';
+import Pagination from '../../ui/CustomePagination';
 import CustomeFilter from '../../ui/CustomeFilter';
-import { Purchase } from '@/utils/types/PurchaseType';
+import { Purchase } from '@/types/PurchaseType';
 import formattedDate from '@/utils/formattedDate'; // <-- Nama import diperbaiki
 import { formatToRupiah } from '@/utils/priceFormated';
 import { useNavigate } from 'react-router-dom';
+import { usePurchaseStore } from '@/stores/purchase.store';
 
 type PurchaseListProps = {
   purchases: Purchase[];
@@ -31,35 +31,11 @@ export const PurchaseList = ({
   loading,
   onEdit,
 }: PurchaseListProps) => {
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [rowsPerPage, setRowsPerPage] = useState<number>(5);
-  const [searchTerm, setSearchTerm] = useState<string>('');
   const navigate = useNavigate();
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-    setCurrentPage(1);
-  };
-
-  const filteredPurchases = purchases.filter(
-    (purchase) =>
-      purchase.invoiceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      purchase.supplier.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const totalPages = Math.ceil(filteredPurchases.length / rowsPerPage);
-
-  const paginatedPurchases = filteredPurchases.slice(
-    (currentPage - 1) * rowsPerPage,
-    currentPage * rowsPerPage
-  );
+  const { pagination, setFilter, filters } = usePurchaseStore();
 
   const handleToDetail = (id: string) => {
     navigate(`/purchase/detail?purchaseId=${id}`);
-  };
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
   };
 
   if (loading) {
@@ -74,15 +50,7 @@ export const PurchaseList = ({
   return (
     <>
       <Box sx={{ width: '100%' }}>
-        <CustomeFilter
-          pagination={rowsPerPage}
-          setPagination={(value) => {
-            setRowsPerPage(value);
-            setCurrentPage(1);
-          }}
-          searchTerm={searchTerm}
-          handleSearchChange={handleSearchChange}
-        />
+        <CustomeFilter filters={filters} setFilter={setFilter} />
         <TableContainer>
           <Table aria-label="purchase table">
             <TableHead>
@@ -101,7 +69,7 @@ export const PurchaseList = ({
             </TableHead>
 
             <TableBody>
-              {paginatedPurchases.map((purchase, index) => (
+              {purchases.map((purchase, index) => (
                 <TableRow
                   key={purchase.id}
                   hover
@@ -113,7 +81,9 @@ export const PurchaseList = ({
                   }}
                 >
                   <TableCell>
-                    {(currentPage - 1) * rowsPerPage + index + 1}
+                    {(pagination.currentPage - 1) * pagination.limit +
+                      index +
+                      1}
                   </TableCell>
                   <TableCell>
                     <Typography
@@ -147,7 +117,7 @@ export const PurchaseList = ({
                   </TableCell>
                 </TableRow>
               ))}
-              {filteredPurchases.length === 0 && (
+              {purchases.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} align="center">
                     Data pembelian tidak ditemukan
@@ -159,11 +129,7 @@ export const PurchaseList = ({
         </TableContainer>
 
         <Box className="w-full flex justify-end items-center py-4 gap-2">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-          />
+          <Pagination pagination={pagination} setFilter={setFilter} />
         </Box>
       </Box>
     </>

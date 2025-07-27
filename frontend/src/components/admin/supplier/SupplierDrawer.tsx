@@ -11,9 +11,9 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { useForm, Controller } from 'react-hook-form';
-import { SupplierRequest, Supplier } from '@/utils/types/SupplierType';
+import { SupplierRequest, Supplier } from '@/types/SupplierType';
 import { useNotification } from '@/hooks/useNotification';
-import { supplierService } from '@/services/supplier/supplierService';
+import { supplierService } from '@/services/supplierService';
 
 interface SupplierDrawerProps {
   open: boolean;
@@ -68,15 +68,12 @@ export const SupplierDrawer = ({
   const onSubmit = async (data: SupplierRequest) => {
     try {
       setSubmitting(true);
-      console.log('Submitting form with data:', data);
 
       let response;
 
       if (editMode && supplier) {
         // Update existing supplier
-        console.log('Updating supplier ID:', supplier.id);
         response = await supplierService.update(supplier.id, data);
-        console.log('Update response:', response);
 
         if (response.success) {
           showNotification('Kategori berhasil diperbarui', 'success');
@@ -91,7 +88,6 @@ export const SupplierDrawer = ({
       } else {
         // Create new supplier
         response = await supplierService.create(data);
-        console.log('Create response:', response);
 
         if (response.success) {
           showNotification('Kategori berhasil dibuat', 'success');

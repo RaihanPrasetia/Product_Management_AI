@@ -20,8 +20,8 @@ import { formatToRupiah } from '@/utils/priceFormated';
 import Content from '@/components/ui/content/Content';
 import { ContentHead } from '@/components/ui/content/ContentHead';
 import { MdArrowBack } from 'react-icons/md';
-import { Purchase, PurchaseItem } from '@/utils/types/PurchaseType';
-import { purchaseService } from '@/services/purchase/purchaseService';
+import { Purchase, PurchaseItem } from '@/types/PurchaseType';
+import { purchaseService } from '@/services/purchaseService';
 import formattedDate from '@/utils/formattedDate';
 
 // Helper untuk menampilkan detail item di dalam tabel

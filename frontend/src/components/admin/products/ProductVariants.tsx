@@ -12,11 +12,11 @@ import {
   UseFieldArrayRemove,
   FieldArrayWithId,
 } from 'react-hook-form';
-import { VariantDetail } from '@/utils/types/ProductType';
+import { VariantDetail } from '@/types/ProductType';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
-import { ControlledSelect } from '@/components/form/ControlledSelect';
-import { ControlledTextField } from '@/components/form/ControlledTextField';
+import { ControlledSelect } from '@/components/ui/form/ControlledSelect';
+import { ControlledTextField } from '@/components/ui/form/ControlledTextField';
 
 interface Props {
   control: Control<any>;

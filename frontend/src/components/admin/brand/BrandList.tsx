@@ -15,34 +15,28 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { ConfirmationDialog } from '../../ui/ConfirmationDialog';
 import { FaSpinner } from 'react-icons/fa';
-import Pagination from '../../ui/Pagination';
+import Pagination from '../../ui/CustomePagination';
 import CustomeFilter from '../../ui/CustomeFilter';
-import { Brand } from '@/utils/types/BrandType';
+import { Brand } from '@/types/BrandType';
 import formattedDate from '@/utils/formattedDate'; // <-- Nama import diperbaiki
+import { useBrandStore } from '@/stores/brand.store';
+import { useNotification } from '@/hooks/useNotification';
+import { SortableHeaderCell } from '@/components/ui/SortableHeaderCell';
 
 type BrandListProps = {
   brands: Brand[];
   loading: boolean;
   onEdit: (brand: Brand) => void;
-  onDelete: (id: string) => void;
 };
 
-export const BrandList = ({
-  brands,
-  loading,
-  onEdit,
-  onDelete,
-}: BrandListProps) => {
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [rowsPerPage, setRowsPerPage] = useState<number>(5);
-  const [searchTerm, setSearchTerm] = useState<string>('');
+export const BrandList = ({ brands, loading, onEdit }: BrandListProps) => {
+  const { deleteData, pagination, filters, setFilter, setSort } =
+    useBrandStore();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [brandToDelete, setBrandToDelete] = useState<Brand | null>(null);
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-    setCurrentPage(1);
-  };
+  // use Hook
+  const { showNotification } = useNotification();
 
   const handleDeleteClick = (brand: Brand) => {
     setBrandToDelete(brand);
@@ -51,30 +45,15 @@ export const BrandList = ({
 
   const handleConfirmDelete = () => {
     if (brandToDelete) {
-      onDelete(brandToDelete.id);
+      deleteData(brandToDelete.id, showNotification);
       setDeleteDialogOpen(false);
       setBrandToDelete(null);
     }
   };
 
-  const filteredCategories = brands.filter((brand) =>
-    brand.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const totalPages = Math.ceil(filteredCategories.length / rowsPerPage);
-
-  const paginatedCategories = filteredCategories.slice(
-    (currentPage - 1) * rowsPerPage,
-    currentPage * rowsPerPage
-  );
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
   if (loading) {
     return (
-      <Box className="w-full h-[200px] flex flex-col justify-center items-center gap-4">
+      <Box className="w-full h-full flex flex-col justify-center items-center gap-4">
         <FaSpinner className="animate-spin text-primary text-3xl" />
         <p className="text-gray-600 text-lg">Loading...</p>
       </Box>
@@ -84,30 +63,57 @@ export const BrandList = ({
   return (
     <>
       <Box sx={{ width: '100%' }}>
-        <CustomeFilter
-          pagination={rowsPerPage}
-          setPagination={(value) => {
-            setRowsPerPage(value);
-            setCurrentPage(1);
-          }}
-          searchTerm={searchTerm}
-          handleSearchChange={handleSearchChange}
-        />
+        <CustomeFilter filters={filters} setFilter={setFilter} />
         <TableContainer>
           <Table aria-label="brand table">
             <TableHead>
               <TableRow>
                 <TableCell className="w-[20px]">No</TableCell>
-                <TableCell>Brand</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Created At</TableCell>
-                <TableCell>Last Updated</TableCell>
-                <TableCell>Deleted At</TableCell>
+                <SortableHeaderCell
+                  sortKey="name"
+                  orderBy={filters.orderBy}
+                  orderDirection={filters.orderDirection}
+                  onSort={setSort}
+                >
+                  Brand
+                </SortableHeaderCell>
+                <SortableHeaderCell
+                  sortKey="isActive"
+                  orderBy={filters.orderBy}
+                  orderDirection={filters.orderDirection}
+                  onSort={setSort}
+                >
+                  Status
+                </SortableHeaderCell>
+                <SortableHeaderCell
+                  sortKey="createdAt"
+                  orderBy={filters.orderBy}
+                  orderDirection={filters.orderDirection}
+                  onSort={setSort}
+                >
+                  Create Date
+                </SortableHeaderCell>
+                <SortableHeaderCell
+                  sortKey="updatedAt"
+                  orderBy={filters.orderBy}
+                  orderDirection={filters.orderDirection}
+                  onSort={setSort}
+                >
+                  Last Update
+                </SortableHeaderCell>
+                <SortableHeaderCell
+                  sortKey="deletedAt"
+                  orderBy={filters.orderBy}
+                  orderDirection={filters.orderDirection}
+                  onSort={setSort}
+                >
+                  Deleted Date
+                </SortableHeaderCell>
                 <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {paginatedCategories.map((brand, index) => (
+              {brands.map((brand, index) => (
                 <TableRow
                   key={brand.id}
                   hover
@@ -121,8 +127,9 @@ export const BrandList = ({
                   }}
                 >
                   <TableCell>
-                    {/* Perbaikan penomoran paginasi */}
-                    {(currentPage - 1) * rowsPerPage + index + 1}
+                    {(pagination.currentPage - 1) * pagination.limit +
+                      index +
+                      1}
                   </TableCell>
                   <TableCell>{brand.name}</TableCell>
                   <TableCell>
@@ -140,7 +147,6 @@ export const BrandList = ({
                   <TableCell>{formattedDate(brand.createdAt)}</TableCell>
                   <TableCell>{formattedDate(brand.updatedAt)}</TableCell>
                   <TableCell>
-                    {/* Perbaikan tampilan deletedAt */}
                     {brand.deletedAt ? formattedDate(brand.deletedAt) : '-'}
                   </TableCell>
                   <TableCell align="right">
@@ -167,7 +173,7 @@ export const BrandList = ({
                   </TableCell>
                 </TableRow>
               ))}
-              {filteredCategories.length === 0 && (
+              {brands.length === 0 && (
                 <TableRow>
                   {/* Perbaikan colSpan */}
                   <TableCell colSpan={7} align="center">
@@ -180,11 +186,7 @@ export const BrandList = ({
         </TableContainer>
 
         <Box className="w-full flex justify-end items-center py-4 gap-2">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-          />
+          <Pagination pagination={pagination} setFilter={setFilter} />
         </Box>
       </Box>
 

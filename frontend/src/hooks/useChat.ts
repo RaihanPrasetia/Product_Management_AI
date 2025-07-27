@@ -1,7 +1,7 @@
 // src/hooks/useChat.ts
 
 import { useState } from 'react';
-import { geminiService } from '@/services/gemini/geminiService';
+import { geminiService } from '@/services/geminiService';
 
 // Definisikan tipe data yang akan kita gunakan
 interface Message {
