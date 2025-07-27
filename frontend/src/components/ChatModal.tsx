@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { geminiService } from '@/services/gemini/geminiService';
 import {
   Modal,
   Box,
@@ -11,10 +10,13 @@ import {
   Paper,
   Chip,
   Stack,
-  Link, // Import Link dari MUI untuk "Baca Selengkapnya"
 } from '@mui/material';
 import { IoClose, IoSend } from 'react-icons/io5';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useChat } from '@/hooks/useChat';
+
+import remarkGfm from 'remark-gfm';
+import ReactMarkdown from 'react-markdown';
 
 // Definisikan tipe untuk props
 interface ChatModalProps {
@@ -22,19 +24,11 @@ interface ChatModalProps {
   handleClose: () => void;
 }
 
-// Definisikan tipe untuk pesan (tambahkan isExpanded)
-interface Message {
-  from: 'user' | 'ai';
-  text: string;
-  isExpanded?: boolean; // Tambahkan properti ini
-}
-
 // Gaya untuk Box di dalam Modal
 const style = {
   position: 'absolute' as 'absolute',
-  top: '50%',
-  left: '50%',
-  transform: 'translate(-50%, -50%)',
+  bottom: '50px', // Jarak dari bawah layar
+  right: '50px', // Jarak dari kanan layar
   width: { xs: '90%', sm: 500 },
   bgcolor: 'background.paper',
   boxShadow: 24,
@@ -45,79 +39,27 @@ const style = {
   height: '80vh',
 };
 
-// Batas karakter untuk memicu "Baca Selengkapnya"
-const TRUNCATE_LIMIT = 200; // Misalnya, 200 karakter
-
 export default function ChatModal({ open, handleClose }: ChatModalProps) {
+  const { messages, isLoading, sendMessage } = useChat();
+
   const [prompt, setPrompt] = useState('');
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Opsi pesan awal
-  const starterPrompts = [
-    'Jelaskan tentang React.js',
-    'Bagaimana cara mengoptimalkan Next.js?',
-    'Berikan tips UI/UX untuk aplikasi e-commerce',
-    'Apa itu Tailwind CSS?',
-    "Contoh copywriting yang baik untuk tombol 'Daftar'",
-  ];
+  const starterPrompts = ['Laporan Produk', 'Laporan stock'];
 
-  // Scroll ke bawah setiap kali ada pesan baru
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Fungsi untuk mengirim pesan
-  const sendMessage = async (messageText: string) => {
-    if (!messageText.trim() || isLoading) return;
-
-    const userMessage: Message = { from: 'user', text: messageText };
-    setMessages((prev) => [...prev, userMessage]);
-
-    setIsLoading(true);
-
-    try {
-      const response = await geminiService.chat(messageText);
-      // Cek apakah response.reply lebih panjang dari TRUNCATE_LIMIT
-      const shouldTruncate = response.reply.length > TRUNCATE_LIMIT;
-      const aiMessage: Message = {
-        from: 'ai',
-        text: response.reply,
-        isExpanded: !shouldTruncate, // Awalnya tidak diperluas jika perlu dipotong
-      };
-      setMessages((prev) => [...prev, aiMessage]);
-    } catch (error) {
-      const errorMessageText =
-        error instanceof Error ? error.message : 'Terjadi kesalahan.';
-      const errorMessage: Message = {
-        from: 'ai',
-        text: errorMessageText,
-        isExpanded: true,
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!prompt.trim()) return;
     sendMessage(prompt);
-    setPrompt('');
+    setPrompt(''); // Kosongkan input setelah dikirim
   };
 
   const handleStarterPromptClick = (starterPrompt: string) => {
     sendMessage(starterPrompt);
-  };
-
-  // Fungsi untuk mengubah status isExpanded
-  const toggleExpandMessage = (index: number) => {
-    setMessages((prevMessages) =>
-      prevMessages.map((msg, i) =>
-        i === index ? { ...msg, isExpanded: !msg.isExpanded } : msg
-      )
-    );
   };
 
   return (
@@ -184,8 +126,10 @@ export default function ChatModal({ open, handleClose }: ChatModalProps) {
                 transition={{ duration: 0.3 }}
                 style={{
                   display: 'flex',
+
                   justifyContent:
                     msg.from === 'user' ? 'flex-end' : 'flex-start',
+
                   marginBottom: '8px',
                 }}
               >
@@ -193,43 +137,58 @@ export default function ChatModal({ open, handleClose }: ChatModalProps) {
                   elevation={2}
                   sx={{
                     p: 1.5,
-                    bgcolor: msg.from === 'user' ? 'primary.main' : 'grey.200',
+
+                    bgcolor: msg.from === 'user' ? 'primary.main' : 'grey.50',
+
                     color:
                       msg.from === 'user'
                         ? 'primary.contrastText'
                         : 'text.primary',
+
                     maxWidth: '80%',
+
                     wordWrap: 'break-word',
+                    overflowX: 'hidden',
+
                     borderRadius: '16px',
+
                     borderBottomRightRadius:
                       msg.from === 'user' ? '4px' : '16px',
+
                     borderBottomLeftRadius: msg.from === 'ai' ? '4px' : '16px',
                   }}
                 >
-                  <Typography variant="body1">
-                    {/* Tampilkan teks yang dipotong atau seluruhnya */}
-                    {msg.from === 'ai' &&
-                    msg.text.length > TRUNCATE_LIMIT &&
-                    !msg.isExpanded
-                      ? `${msg.text.substring(0, TRUNCATE_LIMIT)}...`
-                      : msg.text}
-                  </Typography>
-
-                  {/* Tombol "Baca Selengkapnya" */}
-                  {msg.from === 'ai' && msg.text.length > TRUNCATE_LIMIT && (
-                    <Link
-                      component="button"
-                      variant="body2"
-                      onClick={() => toggleExpandMessage(index)}
+                  {msg.from === 'ai' ? (
+                    <Box
+                      className="markdown-container"
                       sx={{
-                        mt: 1,
-                        display: 'block',
-                        textAlign: 'right',
-                        cursor: 'pointer',
+                        // -> 2. Tambahkan styling untuk tabel di sx prop
+                        'p, ul, ol, pre': { m: 0 },
+                        overflowX: 'auto',
+                        table: {
+                          width: '100%',
+                          borderCollapse: 'collapse',
+                          my: 2,
+                          tableLayout: 'auto',
+                        },
+                        'th, td': {
+                          border: '1px solid',
+                          borderColor: 'grey.300',
+                          p: 1,
+                          textAlign: 'left',
+                          whiteSpace: 'nowrap',
+                        },
+                        thead: {
+                          backgroundColor: 'grey.100',
+                        },
                       }}
                     >
-                      {msg.isExpanded ? 'Sembunyikan' : 'Baca Selengkapnya'}
-                    </Link>
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {msg.text}
+                      </ReactMarkdown>
+                    </Box>
+                  ) : (
+                    <Typography variant="body1">{msg.text}</Typography>
                   )}
                 </Paper>
               </motion.div>

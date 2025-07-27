@@ -106,6 +106,7 @@ export const ProductList = ({
               <TableRow>
                 <TableCell className="w-[20px]">No</TableCell>
                 <TableCell>Name</TableCell>
+                <TableCell>SKU</TableCell>
                 <TableCell>Type</TableCell>
                 <TableCell>Price</TableCell>
                 <TableCell>Stock</TableCell>
@@ -130,6 +131,7 @@ export const ProductList = ({
                       {product.name}
                     </span>
                   </TableCell>
+                  <TableCell>{product.sku}</TableCell>
                   <TableCell width={'100px'}>
                     <Chip
                       label={product.type}

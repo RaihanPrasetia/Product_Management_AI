@@ -98,6 +98,71 @@ class StockService {
 
     return { history, total };
   }
+
+  public async findStockReport(identifier: string) {
+    // 1. Cari produk/varian berdasarkan identifier (bisa ID, SKU, atau nama)
+    //    Kita cari di beberapa field untuk fleksibilitas.
+    const productOrVariant =
+      // Cari di ProductVariant berdasarkan SKU
+      (await db.productVariant.findFirst({
+        where: { sku: identifier },
+        include: { stock: true },
+      })) ||
+      // Cari di Product berdasarkan SKU
+      (await db.product.findFirst({
+        where: { sku: identifier },
+        include: { stock: true },
+      })) ||
+      // Cari di Product berdasarkan Nama (case-insensitive)
+      (await db.product.findFirst({
+        where: { name: { contains: identifier, mode: 'insensitive' } },
+        include: { stock: true },
+      }));
+
+    if (!productOrVariant || !productOrVariant.stock) {
+      throw new AppError(
+        `Produk atau stok untuk '${identifier}' tidak ditemukan.`,
+        404
+      );
+    }
+
+    const stockId = productOrVariant.stock.id;
+
+    // 2. Ambil informasi stok saat ini dan riwayatnya secara bersamaan
+    const [currentStockInfo, history] = await Promise.all([
+      // Ambil detail info stok yang sudah kita temukan
+      db.stock.findUnique({
+        where: { id: stockId },
+        include: {
+          product: { select: { name: true, sku: true } },
+          productVariant: {
+            select: {
+              value: true,
+              sku: true,
+              product: { select: { name: true } },
+            },
+          },
+        },
+      }),
+      // Ambil 5 riwayat stok terakhir
+      db.stockHistory.findMany({
+        where: { stockId },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+      }),
+    ]);
+
+    if (!currentStockInfo) {
+      // Seharusnya tidak terjadi, tapi sebagai pengaman
+      throw new AppError('Detail stok tidak dapat dimuat.', 404);
+    }
+
+    // 3. Format hasilnya menjadi satu laporan yang koheren
+    return {
+      currentStock: currentStockInfo,
+      history: history,
+    };
+  }
 }
 
 export default new StockService();

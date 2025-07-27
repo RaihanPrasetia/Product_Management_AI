@@ -23,8 +23,8 @@ export default function MenuItem({
 }: MenuItemProps) {
   const hasSubMenu = item.subMenu && item.subMenu.length > 0;
   const isActive =
-    pathname === item.href ||
-    (hasSubMenu && item.subMenu?.some((subItem) => pathname === subItem.href));
+    pathname.startsWith(item.href) ||
+    (hasSubMenu && item.subMenu?.some((sub) => pathname.startsWith(sub.href)));
 
   return (
     <li>

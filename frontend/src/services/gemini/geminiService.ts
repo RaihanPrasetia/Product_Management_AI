@@ -1,8 +1,22 @@
 import axios from 'axios';
 import api from '../axios';
 
+// -> NEW: Definisikan tipe untuk history agar konsisten dengan front-end & back-end
+interface HistoryItem {
+  role: 'user' | 'model';
+  parts: { text: string }[];
+}
+
+// -> NEW: Definisikan tipe untuk payload yang dikirim ke API
+interface ChatPayload {
+  message: string;
+  history: HistoryItem[];
+}
+
+// -> FIX: Perbarui tipe respons untuk menyertakan history
 interface ChatResponse {
   reply: string;
+  history: HistoryItem[];
 }
 
 class GeminiApiService {
@@ -11,21 +25,26 @@ class GeminiApiService {
    */
   private _handleApiError(error: unknown, defaultMessage: string): Error {
     if (axios.isAxiosError(error)) {
-      const apiMessage = error.response?.data?.message;
+      // Mengambil pesan error dari respons API backend jika ada
+      const apiMessage =
+        error.response?.data?.message || error.response?.data?.reply;
       return new Error(apiMessage || defaultMessage);
     }
-    return new Error('Terjadi kesalahan yang tidak diketahui');
+    return new Error('Terjadi kesalahan yang tidak diketahui pada server.');
   }
 
   /**
-   * Mengambil semua kategori dengan filter opsional.
+   * Mengirim pesan dan history ke AI, lalu menerima balasan dan history baru.
    */
-  public async chat(message: string): Promise<ChatResponse> {
+  // -> FIX: Ubah parameter untuk menerima payload lengkap
+  public async chat(payload: ChatPayload): Promise<ChatResponse> {
     try {
-      const response = await api.post<ChatResponse>('/chat', { message });
+      // -> FIX: Kirim seluruh payload (message & history)
+      const response = await api.post<ChatResponse>('/chat', payload);
       return response.data;
     } catch (error) {
-      throw this._handleApiError(error, 'Gagal mengambil data kategori');
+      // -> FIX: Perbarui pesan error default agar lebih relevan
+      throw this._handleApiError(error, 'Gagal terhubung dengan AI Assistant');
     }
   }
 }
