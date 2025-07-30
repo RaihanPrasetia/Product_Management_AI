@@ -38,6 +38,7 @@ model User {
   createdSuppliers     Supplier[]     @relation("CreatedSuppliers")
   createdPurchases     Purchase[]     @relation("CreatedPurchases")
   createdDiscounts     Discount[]     @relation("CreatedDiscounts")
+  createdSales         Sale[]         @relation("CreatedSales")
 }
 
 model Role {
@@ -85,10 +86,12 @@ model Product {
   
   // Hanya diisi untuk produk tipe VARIABLE
   productVariants ProductVariant[]
+  
 
   // Hanya diisi untuk produk tipe SIMPLE
   stock           Stock?
   purchaseItems PurchaseItem[]
+  saleItems     SaleItem[]
 
 }
 
@@ -180,8 +183,75 @@ model ProductVariant {
   // Setiap varian punya entri stok sendiri
   stock         Stock?
   purchaseItems PurchaseItem[]
+  saleItems     SaleItem[]
 
   @@unique([productId, variantId, value])
+}
+
+// ===================================
+// MODEL PENJUALAN (SALE)
+// ===================================
+
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+  QRIS
+}
+
+model Sale {
+  id            String   @id @default(cuid())
+  invoiceNumber String   @unique
+  saleDate      DateTime @default(now())
+  subtotal      Decimal  // Total harga item sebelum diskon
+  totalDiscount Decimal  @default(0) // Total diskon dari semua item
+  totalAmount   Decimal  // subtotal - totalDiscount
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deletedAt     DateTime?
+
+  // Relasi
+  createdById String
+  createdBy   User   @relation("CreatedSales", fields: [createdById], references: [id])
+  
+  items         SaleItem[]
+  payments      Payment[]
+}
+
+model SaleItem {
+  id        String   @id @default(cuid())
+  quantity  Int
+  price     Decimal  // Harga jual saat transaksi terjadi (untuk arsip)
+  discount  Decimal  @default(0)
+  subtotal  Decimal  // (quantity * price) - discount
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relasi
+  saleId String
+  sale   Sale   @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  // Hanya salah satu dari dua field ini yang diisi
+  productId        String?
+  product          Product? @relation(fields: [productId], references: [id])
+  
+  productVariantId String?
+  productVariant   ProductVariant? @relation(fields: [productVariantId], references: [id])
+}
+
+model Payment {
+  id            String        @id @default(cuid())
+  amount        Decimal
+  paymentMethod PaymentMethod
+  transactionId String?       // ID dari payment gateway jika ada
+  paymentDate   DateTime      @default(now())
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relasi
+  saleId String
+  sale   Sale   @relation(fields: [saleId], references: [id], onDelete: Cascade)
 }
 
 // ===================================

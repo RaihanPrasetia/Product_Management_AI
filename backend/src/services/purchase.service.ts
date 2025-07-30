@@ -112,21 +112,7 @@ class PurchaseService {
   public async findById(id: string) {
     const purchase = await db.purchase.findUnique({
       where: { id, deletedAt: null },
-      include: {
-        supplier: true,
-        items: {
-          include: {
-            product: { select: { name: true, sku: true } },
-            productVariant: {
-              select: {
-                value: true,
-                sku: true,
-                product: { select: { name: true } },
-              },
-            },
-          },
-        },
-      },
+      include: purchaseInclude,
     });
 
     if (!purchase) {
@@ -135,13 +121,8 @@ class PurchaseService {
     return purchase;
   }
 
-  public async update(
-    id: string,
-    data: Partial<CreatePurchaseInput>,
-    createdById: string
-  ) {
+  public async update(id: string, data: Partial<CreatePurchaseInput>) {
     return db.$transaction(async (prisma) => {
-      // 1. Pisahkan data. `items` bisa jadi undefined.
       const { items, ...purchaseData } = data;
 
       // 2. Update data dasar (non-item) dari Purchase terlebih dahulu

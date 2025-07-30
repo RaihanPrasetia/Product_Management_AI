@@ -8,6 +8,7 @@ import variantRoutes from './variant.route';
 import stockRoutes from './stock.routes';
 import supplierRoutes from './supplier.route';
 import purchaseRoutes from './purchase.route';
+import saleRoutes from './sale.routes';
 import dashboardRoutes from './dashboard.route';
 import geminiRoutes from './gemini.routes';
 import { Router } from 'express';
@@ -30,6 +31,7 @@ router.use('/variants', variantRoutes);
 router.use('/stocks', stockRoutes);
 router.use('/suppliers', supplierRoutes);
 router.use('/purchases', purchaseRoutes);
+router.use('/sales', saleRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use(geminiRoutes);
 

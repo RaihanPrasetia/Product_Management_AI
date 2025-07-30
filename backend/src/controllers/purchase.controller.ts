@@ -62,11 +62,7 @@ class PurchaseController {
       const validatedData = updatePurchaseSchema.parse(req.body);
 
       // 3. Panggil service untuk melakukan update
-      const updatedPurchase = await PurchaseService.update(
-        id,
-        validatedData,
-        req.user!.id
-      );
+      const updatedPurchase = await PurchaseService.update(id, validatedData);
 
       res.status(200).json({
         message: 'Data pembelian berhasil diupdate',
