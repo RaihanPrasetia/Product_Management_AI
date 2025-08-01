@@ -1,52 +1,74 @@
-import ChatModal from '@/components/ChatModal';
-import { Fab, Tooltip } from '@mui/material';
 import { useState } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
+import { Fab, Tooltip, useMediaQuery, Theme } from '@mui/material';
 import { IoChatbubbles } from 'react-icons/io5';
-import { Outlet, useLocation } from 'react-router-dom'; // <--- import useLocation
+import { motion, AnimatePresence, Transition } from 'framer-motion';
+import clsx from 'clsx';
+
 import Sidebar from './components/sidebar/SidebarAdmin';
 import Navbar from './components/navbar/NavbarAdmin';
 import FooterAdmin from './components/FooterAdmin';
+import ChatModal from '@/components/ChatModal';
 
 export default function AdminLayout() {
-  const location = useLocation(); // <--- akses path sekarang
+  const location = useLocation();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isSidebarFixed, setSidebarFixed] = useState(false);
   const [openChat, setOpenChat] = useState(false);
 
+  // Hook untuk mendeteksi layar besar (desktop)
+  const isDesktop = useMediaQuery((theme: Theme) => theme.breakpoints.up('lg'));
+
   const handleSidebarToggle = () => {
-    setSidebarOpen(!isSidebarOpen);
-    setSidebarFixed(!isSidebarFixed);
+    const newState = !isSidebarOpen;
+    setSidebarOpen(newState);
+    setSidebarFixed(newState); // Pin sidebar saat di-toggle manual
   };
 
   const handleChatOpen = () => setOpenChat(true);
   const handleChatClose = () => setOpenChat(false);
 
-  const isLoginPage = location.pathname === '/admin/login'; // <--- cek apakah lagi di login
+  const isLoginPage = location.pathname === '/admin/login';
+
+  const sidebarWidth = isSidebarOpen ? 256 : 80; // dalam pixel (w-64: 256px, w-20: 80px)
+
+  const transitionProps: Transition = {
+    duration: 0.4,
+    ease: 'easeInOut',
+  };
 
   return (
     <div className="flex min-h-screen bg-gray-100 text-black">
-      {!isLoginPage && (
-        <div
-          className={`h-full lg:block fixed z-50 mt-3 lg:top-0 transition-all duration-500 ease-in-out ${
-            isSidebarOpen ? 'w-64' : 'w-0 lg:w-20'
-          }`}
-          onMouseEnter={() => {
-            if (!isSidebarFixed) setSidebarOpen(true);
-          }}
-          onMouseLeave={() => {
-            if (!isSidebarFixed) setSidebarOpen(false);
-          }}
-        >
-          <Sidebar isOpen={isSidebarOpen} toggleSidebar={handleSidebarToggle} />
-        </div>
-      )}
+      <AnimatePresence>
+        {!isLoginPage && (
+          <motion.div
+            // Animasikan lebar sidebar
+            animate={{
+              width: isDesktop ? sidebarWidth : isSidebarOpen ? 256 : 0,
+            }}
+            transition={transitionProps}
+            className="h-full lg:block fixed z-50 mt-3 lg:top-0"
+            onMouseEnter={() => {
+              if (!isSidebarFixed && isDesktop) setSidebarOpen(true);
+            }}
+            onMouseLeave={() => {
+              if (!isSidebarFixed && isDesktop) setSidebarOpen(false);
+            }}
+          >
+            <Sidebar
+              isOpen={isSidebarOpen}
+              toggleSidebar={handleSidebarToggle}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      <div
-        className={`transition-all w-full duration-500 ease-in-out ${
-          isSidebarOpen ? 'lg:ml-64' : 'lg:ml-20'
-        }`}
+      <motion.div
+        // Animasikan margin konten utama hanya di desktop
+        animate={{ marginLeft: isDesktop && !isLoginPage ? sidebarWidth : 0 }}
+        transition={transitionProps}
+        className="w-full"
       >
-        {/* Navbar */}
         {!isLoginPage && (
           <Navbar
             toggleSidebar={handleSidebarToggle}
@@ -54,37 +76,45 @@ export default function AdminLayout() {
           />
         )}
         <div
-          className={`pb-5 ${
-            isSidebarOpen ? 'px-4 lg:px-6' : 'px-4 lg:px-20'
-          } `}
+          // Gunakan clsx untuk padding yang dinamis
+          className={clsx('pb-5', {
+            'px-4 lg:px-6': !isLoginPage,
+            'p-0': isLoginPage,
+          })}
         >
           <Outlet />
         </div>
-        {/* Footer */}
         {!isLoginPage && <FooterAdmin />}
-      </div>
-      {!isLoginPage && (
-        <>
-          <Tooltip title="AI Assistant">
-            <Fab
-              color="primary"
-              aria-label="chat"
-              onClick={handleChatOpen}
-              sx={{
-                position: 'fixed',
-                bottom: 24, // 24px dari bawah
-                right: 24, // 24px dari kanan
-                zIndex: 1000, // Pastikan di atas elemen lain
-              }}
-            >
-              <IoChatbubbles size={24} />
-            </Fab>
-          </Tooltip>
+      </motion.div>
 
-          {/* Render Komponen Modal */}
-          <ChatModal open={openChat} handleClose={handleChatClose} />
-        </>
-      )}
+      <AnimatePresence>
+        {!isLoginPage && (
+          <motion.div
+            initial={{ scale: 0, opacity: 0, y: 50 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0, opacity: 0, y: 50 }}
+            transition={{ ...transitionProps, delay: 0.5 }}
+          >
+            <Tooltip title="AI Assistant">
+              <Fab
+                color="primary"
+                aria-label="chat"
+                onClick={handleChatOpen}
+                sx={{
+                  position: 'fixed',
+                  bottom: 24,
+                  right: 24,
+                  zIndex: 1000,
+                }}
+              >
+                <IoChatbubbles size={24} />
+              </Fab>
+            </Tooltip>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <ChatModal open={openChat} handleClose={handleChatClose} />
     </div>
   );
 }

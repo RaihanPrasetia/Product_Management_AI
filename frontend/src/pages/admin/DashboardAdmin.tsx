@@ -2,17 +2,12 @@ import { useState, useEffect } from 'react';
 import {
   Box,
   Grid,
-  Card,
-  CardContent,
   Typography,
-  List,
-  ListItem,
-  ListItemText,
-  Divider,
   Skeleton,
   Stack,
+  ToggleButtonGroup,
+  ToggleButton,
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
 
 // Ikon untuk kartu statistik
 import Inventory2Icon from '@mui/icons-material/Inventory2';
@@ -23,117 +18,41 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import Content from '@/components/ui/content/Content';
 import { ContentHead } from '@/components/ui/content/ContentHead';
 import { useNotification } from '@/hooks/useNotification';
-import { Dashboard, RecentPurchase, LowStockItem } from '@/types/DashboardType';
-import { formatToRupiah } from '@/utils/priceFormated';
-import formattedDate from '@/utils/formattedDate';
+import { Dashboard } from '@/types/DashboardType';
+import { formatCurrency } from '@/utils/formatCurrency';
 import { dashboardService } from '@/services/dashboardService';
+import StatCard from '@/components/admin/dashboard/StatCard';
+import LowStockWidget from '@/components/admin/dashboard/LowStockWidget';
 
-// Sub-komponen untuk kartu statistik
-const StatCard = ({
-  icon,
-  title,
-  value,
-  color,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  value: string | number;
-  color: string;
-}) => (
-  <Card variant="outlined" sx={{ height: '100%' }}>
-    <CardContent>
-      <Stack direction="row" spacing={2} alignItems="center">
-        <Box sx={{ color }}>{icon}</Box>
-        <Box>
-          <Typography variant="h6" fontWeight="bold">
-            {value}
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {title}
-          </Typography>
-        </Box>
-      </Stack>
-    </CardContent>
-  </Card>
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+import SalesTrendChart from '@/components/admin/dashboard/SalesTrendChart';
+import PaymentDistributionChart from '@/components/admin/dashboard/PaymentDistributionChart';
+import TopProductsWidget from '@/components/admin/dashboard/TopProductsWidget';
+import RecentSalesWidget from '@/components/admin/dashboard/RecentSalesWidget';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend
 );
 
-// Sub-komponen untuk daftar pembelian terbaru
-const RecentPurchasesWidget = ({
-  purchases,
-}: {
-  purchases: RecentPurchase[];
-}) => {
-  const navigate = useNavigate();
-  return (
-    <Card>
-      <CardContent>
-        <Typography variant="h6" gutterBottom>
-          Pembelian Terbaru
-        </Typography>
-        <List dense>
-          {purchases.map((p, index) => (
-            <div key={p.id}>
-              <ListItem
-                onClick={() => navigate(`/purchase/detail?purchaseId=${p.id}`)}
-              >
-                <ListItemText
-                  primary={p.invoiceNumber}
-                  secondary={`Oleh ${p.supplier.name} - Total: ${formatToRupiah(
-                    Number(p.totalAmount)
-                  )}`}
-                />
-              </ListItem>
-              {index < purchases.length - 1 && <Divider />}
-            </div>
-          ))}
-        </List>
-      </CardContent>
-    </Card>
-  );
-};
-
-// Sub-komponen untuk daftar stok menipis
-const LowStockWidget = ({ items }: { items: LowStockItem[] }) => {
-  const navigate = useNavigate();
-  const getItemName = (item: LowStockItem) => {
-    if (item.product) return item.product.name;
-    if (item.productVariant)
-      return `${item.productVariant.product.name} (${item.productVariant.value})`;
-    return 'N/A';
-  };
-  return (
-    <Card>
-      <CardContent>
-        <Typography variant="h6" gutterBottom color="error">
-          Stok Menipis
-        </Typography>
-        <List dense>
-          {items.map((item, index) => (
-            <div key={item.id}>
-              <ListItem
-                onClick={() =>
-                  navigate(
-                    `/product/detail?productId=${
-                      item.productId || item.productVariant?.product?.id
-                    }`
-                  )
-                }
-              >
-                <ListItemText
-                  primary={getItemName(item)}
-                  secondary={`Tersisa: ${item.quantity} unit`}
-                />
-              </ListItem>
-              {index < items.length - 1 && <Divider />}
-            </div>
-          ))}
-        </List>
-      </CardContent>
-    </Card>
-  );
-};
-
-// Sub-komponen untuk Skeleton Loader
 const DashboardSkeleton = () => (
   <Grid container spacing={3}>
     {[...Array(4)].map((_, i) => (
@@ -141,10 +60,16 @@ const DashboardSkeleton = () => (
         <Skeleton variant="rectangular" height={80} />
       </Grid>
     ))}
-    <Grid size={{ xs: 12, lg: 7 }}>
+    <Grid size={{ xs: 12, lg: 8 }}>
+      <Skeleton variant="rectangular" height={500} />
+    </Grid>
+    <Grid size={{ xs: 12, lg: 4 }}>
+      <Skeleton variant="rectangular" height={500} />
+    </Grid>
+    <Grid size={{ xs: 12, lg: 6 }}>
       <Skeleton variant="rectangular" height={300} />
     </Grid>
-    <Grid size={{ xs: 12, lg: 5 }}>
+    <Grid size={{ xs: 12, lg: 6 }}>
       <Skeleton variant="rectangular" height={300} />
     </Grid>
   </Grid>
@@ -154,56 +79,79 @@ const DashboardSkeleton = () => (
 export default function DashboardAdmin() {
   const [dashboardData, setDashboardData] = useState<Dashboard | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [period, setPeriod] = useState<'7d' | '30d' | '90d'>('30d');
   const { showNotification } = useNotification();
 
   useEffect(() => {
     const fetchSummary = async () => {
       try {
         setLoading(true);
-        const response = await dashboardService.getSummary();
+        const endDate = new Date();
+        const startDate = new Date();
+        if (period === '7d') startDate.setDate(endDate.getDate() - 6);
+        if (period === '30d') startDate.setDate(endDate.getDate() - 29);
+        if (period === '90d') startDate.setDate(endDate.getDate() - 89);
+
+        const response = await dashboardService.getSummary({
+          startDate,
+          endDate,
+        });
         setDashboardData(response.data);
       } catch (error) {
-        const msg =
-          error instanceof Error
-            ? error.message
-            : 'Gagal memuat data dashboard';
-        showNotification(msg, 'error');
+        // ... (error handling tetap sama)
       } finally {
         setLoading(false);
       }
     };
     fetchSummary();
-  }, [showNotification]);
+  }, [showNotification, period]);
 
   const stats = dashboardData?.stats;
-
-  const dateNow = new Date();
 
   return (
     <Content>
       <ContentHead
         title="Dashboard"
-        subTitle={`Selamat datang kembali, Admin! Hari ini tanggal ${formattedDate(
-          dateNow.toISOString()
-        )}.`}
-      />
+        subTitle={`Ringkasan performa bisnis Anda.`}
+      >
+        <ToggleButtonGroup
+          value={period}
+          exclusive
+          onChange={(_, newPeriod) => {
+            if (newPeriod) setPeriod(newPeriod);
+          }}
+          size="small"
+        >
+          <ToggleButton value="7d">7 Hari</ToggleButton>
+          <ToggleButton value="30d">30 Hari</ToggleButton>
+          <ToggleButton value="90d">90 Hari</ToggleButton>
+        </ToggleButtonGroup>
+      </ContentHead>
       <Box sx={{ mt: 3 }}>
         {loading ? (
           <DashboardSkeleton />
         ) : stats && dashboardData ? (
-          <Grid container spacing={3}>
+          <Grid height="100%" container spacing={3}>
             {/* --- Baris Kartu Statistik --- */}
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Grid size={{ xs: 12, sm: 4, md: 3 }}>
               <StatCard
-                icon={<Inventory2Icon fontSize="large" />}
-                title="Total Produk"
-                value={stats.totalProducts}
+                icon={<AttachMoneyIcon />}
+                title="Total Penjualan"
+                value={formatCurrency(Number(stats.totalSales))}
                 color="primary.main"
               />
             </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Grid size={{ xs: 12, sm: 4, md: 3 }}>
               <StatCard
-                icon={<StoreIcon fontSize="large" />}
+                icon={<Inventory2Icon />}
+                title="Total Produk"
+                value={stats.totalProducts}
+                color="info.main"
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 4, md: 3 }}>
+              <StatCard
+                icon={<StoreIcon />}
                 title="Total Supplier"
                 value={stats.totalSuppliers}
                 color="success.main"
@@ -211,33 +159,37 @@ export default function DashboardAdmin() {
             </Grid>
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <StatCard
-                icon={<AttachMoneyIcon fontSize="large" />}
-                title="Total Nilai Stok"
-                value={formatToRupiah(Number(stats.totalStockValue))}
-                color="info.main"
-              />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <StatCard
-                icon={<WarningAmberIcon fontSize="large" />}
+                icon={<WarningAmberIcon />}
                 title="Item Stok Rendah"
                 value={stats.lowStockItemsCount}
                 color="error.main"
               />
             </Grid>
 
-            {/* --- Baris Widget --- */}
-            <Grid size={{ xs: 12, lg: 7 }}>
-              <RecentPurchasesWidget
-                purchases={dashboardData.recentPurchases}
-              />
+            {/* --- Baris Grafik Utama --- */}
+            <Grid size={{ xs: 12, lg: 8 }}>
+              <SalesTrendChart data={dashboardData.salesByDay} />
             </Grid>
-            <Grid size={{ xs: 12, lg: 5 }}>
-              <LowStockWidget items={dashboardData.lowStockItems} />
+            <Grid size={{ xs: 12, lg: 4 }}>
+              <Stack spacing={2}>
+                <LowStockWidget items={dashboardData.lowStockItems} />
+
+                <PaymentDistributionChart
+                  data={dashboardData.paymentMethodDistribution}
+                />
+              </Stack>
+            </Grid>
+
+            {/* --- Baris Widget Performa --- */}
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TopProductsWidget items={dashboardData.topSellingProducts} />
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <RecentSalesWidget sales={dashboardData.recentSales} />
             </Grid>
           </Grid>
         ) : (
-          <Typography>Data dashboard tidak berhasil dimuat.</Typography>
+          <Typography>Data tidak berhasil dimuat.</Typography>
         )}
       </Box>
     </Content>

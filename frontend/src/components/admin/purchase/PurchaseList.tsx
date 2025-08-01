@@ -15,8 +15,8 @@ import { FaSpinner } from 'react-icons/fa';
 import Pagination from '../../ui/CustomePagination';
 import CustomeFilter from '../../ui/CustomeFilter';
 import { Purchase } from '@/types/PurchaseType';
-import formattedDate from '@/utils/formattedDate'; // <-- Nama import diperbaiki
-import { formatToRupiah } from '@/utils/priceFormated';
+import { formattedDate } from '@/utils/formattedDate'; // <-- Nama import diperbaiki
+import { formatCurrency } from '@/utils/formatCurrency';
 import { useNavigate } from 'react-router-dom';
 import { usePurchaseStore } from '@/stores/purchase.store';
 
@@ -102,7 +102,7 @@ export const PurchaseList = ({
                   <TableCell>{purchase.supplier?.name || '-'}</TableCell>
                   <TableCell>{formattedDate(purchase.purchaseDate)}</TableCell>
                   <TableCell align="right">
-                    {formatToRupiah(Number(purchase.totalAmount))}
+                    {formatCurrency(Number(purchase.totalAmount))}
                   </TableCell>
                   <TableCell align="right">
                     <Tooltip title="Edit">

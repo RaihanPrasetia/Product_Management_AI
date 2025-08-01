@@ -2,8 +2,6 @@
 
 import {
   Grid,
-  Card,
-  CardContent,
   Typography,
   Box,
   Divider,
@@ -20,14 +18,15 @@ import {
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useNotification } from '@/hooks/useNotification';
-import { formatToRupiah } from '@/utils/priceFormated';
+import { formatCurrency } from '@/utils/formatCurrency';
 import Content from '@/components/ui/content/Content';
 import { ContentHead } from '@/components/ui/content/ContentHead';
 import { Delete } from '@mui/icons-material';
 import { MdArrowBack } from 'react-icons/md';
 import { Product, ProductVariant } from '@/types/ProductType';
-import formattedDate from '@/utils/formattedDate';
+import { formattedDate } from '@/utils/formattedDate';
 import { productService } from '@/services/productService';
+import CustomCard from '@/components/ui/content/CustomeCard';
 
 // Sub-komponen untuk menampilkan informasi utama produk
 const ProductInfo = ({ product }: { product: Product }) => {
@@ -41,97 +40,93 @@ const ProductInfo = ({ product }: { product: Product }) => {
   }, [product]);
 
   return (
-    <Card>
-      <CardContent>
-        <Stack spacing={2}>
-          <Chip
-            label={product.type}
-            color={product.type === 'SIMPLE' ? 'info' : 'warning'}
-            sx={{ fontWeight: 'bold', alignSelf: 'flex-start' }}
-          />
-          <Typography variant="h5" component="div" gutterBottom>
-            {product.name}
-          </Typography>
-          <Typography variant="body1" color="text.secondary" paragraph>
-            {product.description || 'Tidak ada deskripsi.'}
-          </Typography>
-          <Divider />
-          <Typography variant="h6" color="primary" fontWeight="bold">
-            {formatToRupiah(Number(product.price))}
-          </Typography>
-          <Stack direction="row" spacing={4}>
-            <Box>
-              <Typography variant="caption" color="text.secondary">
-                Kategori
-              </Typography>
-              <Typography variant="body2" fontWeight="medium">
-                {product.category.name}
-              </Typography>
-            </Box>
-            <Box>
-              <Typography variant="caption" color="text.secondary">
-                Brand
-              </Typography>
-              <Typography variant="body2" fontWeight="medium">
-                {product.brand.name}
-              </Typography>
-            </Box>
-            <Box>
-              <Typography variant="caption" color="text.secondary">
-                Total Stok
-              </Typography>
-              <Typography variant="body2" fontWeight="medium">
-                {totalStock} unit
-              </Typography>
-            </Box>
-          </Stack>
-          <Typography variant="caption" color="text.secondary" sx={{ pt: 2 }}>
-            Dibuat pada: {formattedDate(product.createdAt)}
-          </Typography>
+    <CustomCard>
+      <Stack spacing={2}>
+        <Chip
+          label={product.type}
+          color={product.type === 'SIMPLE' ? 'info' : 'warning'}
+          sx={{ fontWeight: 'bold', alignSelf: 'flex-start' }}
+        />
+        <Typography variant="h5" component="div" gutterBottom>
+          {product.name}
+        </Typography>
+        <Typography variant="body1" color="text.secondary" paragraph>
+          {product.description || 'Tidak ada deskripsi.'}
+        </Typography>
+        <Divider />
+        <Typography variant="h6" color="primary" fontWeight="bold">
+          {formatCurrency(Number(product.price))}
+        </Typography>
+        <Stack direction="row" spacing={4}>
+          <Box>
+            <Typography variant="caption" color="text.secondary">
+              Kategori
+            </Typography>
+            <Typography variant="body2" fontWeight="medium">
+              {product.category.name}
+            </Typography>
+          </Box>
+          <Box>
+            <Typography variant="caption" color="text.secondary">
+              Brand
+            </Typography>
+            <Typography variant="body2" fontWeight="medium">
+              {product.brand.name}
+            </Typography>
+          </Box>
+          <Box>
+            <Typography variant="caption" color="text.secondary">
+              Total Stok
+            </Typography>
+            <Typography variant="body2" fontWeight="medium">
+              {totalStock} unit
+            </Typography>
+          </Box>
         </Stack>
-      </CardContent>
-    </Card>
+        <Typography variant="caption" color="text.secondary" sx={{ pt: 2 }}>
+          Dibuat pada: {formattedDate(product.createdAt)}
+        </Typography>
+      </Stack>
+    </CustomCard>
   );
 };
 
 // Sub-komponen untuk menampilkan tabel varian
 const ProductVariantsInfo = ({ variants }: { variants: ProductVariant[] }) => (
-  <Card sx={{ marginTop: 3 }}>
-    <CardContent>
-      <Typography variant="h6" gutterBottom>
-        Varian Produk
-      </Typography>
-      <TableContainer>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Varian</TableCell>
-              <TableCell>SKU</TableCell>
-              <TableCell>Harga</TableCell>
-              <TableCell align="right">Stok</TableCell>
+  <CustomCard>
+    <Typography variant="h6" gutterBottom>
+      Varian Produk
+    </Typography>
+    <TableContainer>
+      <Table size="small">
+        <TableHead>
+          <TableRow>
+            <TableCell>Varian</TableCell>
+            <TableCell>SKU</TableCell>
+            <TableCell>Harga</TableCell>
+            <TableCell align="right">Stok</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {variants.map((variant) => (
+            <TableRow key={variant.id}>
+              <TableCell>
+                <Typography variant="body2" fontWeight="medium">
+                  {variant.variant.name}:
+                </Typography>
+                <Typography variant="body2">{variant.value}</Typography>
+              </TableCell>
+              <TableCell>{variant.sku}</TableCell>
+              <TableCell>{formatCurrency(Number(variant.price))}</TableCell>
+              <TableCell align="right">
+                {variant.stock?.quantity ?? 0}
+              </TableCell>
             </TableRow>
-          </TableHead>
-          <TableBody>
-            {variants.map((variant) => (
-              <TableRow key={variant.id}>
-                <TableCell>
-                  <Typography variant="body2" fontWeight="medium">
-                    {variant.variant.name}:
-                  </Typography>
-                  <Typography variant="body2">{variant.value}</Typography>
-                </TableCell>
-                <TableCell>{variant.sku}</TableCell>
-                <TableCell>{formatToRupiah(Number(variant.price))}</TableCell>
-                <TableCell align="right">
-                  {variant.stock?.quantity ?? 0}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </CardContent>
-  </Card>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  </CustomCard>
 );
 
 // Skeleton Loader untuk UX yang lebih baik
@@ -209,13 +204,13 @@ export default function ProductDetail() {
       >
         <Stack direction="row" spacing={2}>
           <button
-            className="flex items-center px-4 border-2 border-slate-500 py-2 text-sm font-semibold text-slate-500 rounded-md transition hover:bg-slate-200"
+            className="flex items-center px-4 hover:cursor-pointer border-2 border-slate-500 py-2 text-sm font-semibold text-slate-500 rounded-md transition hover:bg-slate-200"
             onClick={() => navigate(-1)}
           >
             <MdArrowBack className="h-5 w-5 mr-1" /> Back
           </button>
           <button
-            className="flex items-center px-4 py-2 text-sm font-semibold text-white rounded-md transition bg-red-600 hover:bg-red-700"
+            className="flex items-center hover:cursor-pointer px-4 py-2 text-sm font-semibold text-white rounded-md transition bg-red-600 hover:bg-red-700"
             onClick={handleDeleteProduct}
           >
             <Delete className="h-5 w-5 mr-1" /> Delete

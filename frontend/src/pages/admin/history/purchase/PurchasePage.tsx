@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import Content from '@/components/ui/content/Content';
-import ContentBody from '@/components/ui/content/ContentBody';
+import CustomeCard from '@/components/ui/content/CustomeCard';
 import { ContentHead } from '@/components/ui/content/ContentHead';
 
 import { Button } from '@mui/material';
@@ -48,13 +48,13 @@ export default function PurchasePage() {
           Tambah Purchase
         </Button>
       </ContentHead>
-      <ContentBody>
+      <CustomeCard>
         <PurchaseList
           purchases={data}
           loading={loading}
           onEdit={(purchase) => handleOpenDrawer('edit', purchase)}
         />
-      </ContentBody>
+      </CustomeCard>
 
       <PurchaseDrawer
         open={drawerOpen}

@@ -4,13 +4,6 @@ type BreadcrumbNavProps = {
   pathname: string;
 };
 
-const breadcrumbMap: { [key: string]: string } = {
-  dashboard: 'Dashboard',
-  products: 'Products',
-  category: 'List Category',
-  detail: 'Product Detail',
-};
-
 export default function BreadcrumbNav({ pathname }: BreadcrumbNavProps) {
   const navigate = useNavigate();
 
@@ -20,7 +13,7 @@ export default function BreadcrumbNav({ pathname }: BreadcrumbNavProps) {
     .split('/')
     .filter((segment) => segment)
     .map((segment, index, array) => ({
-      label: breadcrumbMap[segment] || segment,
+      label: segment,
       path: '/' + [...array.slice(0, index + 1)].join('/'),
       isActive: index === array.length - 1,
     }));
@@ -33,7 +26,7 @@ export default function BreadcrumbNav({ pathname }: BreadcrumbNavProps) {
             {!breadcrumb.isActive ? (
               <button
                 onClick={() => navigate(breadcrumb.path)}
-                className="hover:text-gray-900 transition"
+                className="hover:text-gray-900 text-utama-hover hover:cursor-pointer transition"
               >
                 {breadcrumb.label.charAt(0).toUpperCase() +
                   breadcrumb.label.slice(1)}

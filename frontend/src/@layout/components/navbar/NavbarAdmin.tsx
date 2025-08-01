@@ -38,7 +38,7 @@ export default function Navbar({ toggleSidebar, isSidebar }: NavbarProps) {
         className={`flex items-center justify-between lg:py-6 p-4 mx-0 lg:mx-4 transition-all duration-300 ${
           isScrolled
             ? `bg-white shadow-md rounded-md ${
-                isSidebar ? 'mx-0 lg:mx-6' : 'mx-0 lg:mx-20'
+                isSidebar ? 'mx-0 lg:mx-6' : 'mx-0 lg:mx-6'
               }`
             : 'bg-transparent text-white'
         }`}
@@ -46,7 +46,7 @@ export default function Navbar({ toggleSidebar, isSidebar }: NavbarProps) {
         <div className="flex items-center space-x-6">
           <button
             onClick={handleToggleSidebar}
-            className={`p-2 transition rounded-full ${
+            className={`p-2 cursor-pointer transition rounded-full ${
               isSidebar
                 ? 'bg-gradient-to-br from-pink-500 to-purple-700 border-2 border-gray-100 shadow-mui-customShadow text-white'
                 : 'text-slate-600 hover:bg-white hover:shadow-mui-customShadow hover:text-gray-900'

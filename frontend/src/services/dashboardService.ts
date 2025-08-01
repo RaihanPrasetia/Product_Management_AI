@@ -1,7 +1,12 @@
 import axios from 'axios';
 import api from '../utils/axios';
-import { DashboardApiResponse } from '@/types/DashboardType';
+import { SingleApiResponse } from '@/types/apiTypes';
+import { Dashboard } from '@/types/DashboardType';
 
+interface getSummaryParams {
+  startDate: Date;
+  endDate: Date;
+}
 class DashboardApiService {
   /**
    * Menangani error dari Axios dan mengembalikan pesan yang bersih.
@@ -17,10 +22,15 @@ class DashboardApiService {
   /**
    * Mengambil semua kategori dengan filter opsional.
    */
-  public async getSummary(): Promise<DashboardApiResponse> {
+  public async getSummary(
+    params?: getSummaryParams
+  ): Promise<SingleApiResponse<Dashboard>> {
     try {
-      const response = await api.get<DashboardApiResponse>(
-        '/dashboard/summary'
+      const response = await api.get<SingleApiResponse<Dashboard>>(
+        '/dashboard/summary',
+        {
+          params,
+        }
       );
       return response.data;
     } catch (error) {

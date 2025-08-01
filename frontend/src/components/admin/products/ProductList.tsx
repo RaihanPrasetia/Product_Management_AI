@@ -10,6 +10,12 @@ import {
   Chip,
   Tooltip,
   Typography,
+  Button,
+  Popover,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -17,10 +23,10 @@ import { ConfirmationDialog } from '../../ui/ConfirmationDialog';
 import { FaSpinner } from 'react-icons/fa';
 import Pagination from '../../ui/CustomePagination';
 import CustomeFilter from '../../ui/CustomeFilter';
-import { formatToRupiah } from '@/utils/priceFormated';
+import { formatCurrency } from '@/utils/formatCurrency';
 import { useNavigate } from 'react-router-dom';
 import { Product } from '@/types/ProductType';
-import fromattedDate from '@/utils/formattedDate';
+import {formattedDate} from '@/utils/formattedDate';
 import { Restore } from '@mui/icons-material';
 import { useProductStore } from '@/stores/product.store';
 import { useState } from 'react';
@@ -31,12 +37,17 @@ interface ProductListProps {
   products: Product[];
   loading: boolean;
   onEdit: (product: Product) => void;
+
+  mode?: 'manage' | 'select'; // Mode default adalah 'manage'
+  onSelect?: (product: Product, variantId?: string) => void;
 }
 
 export const ProductList = ({
   products,
   loading,
   onEdit,
+  mode = 'manage', // Set default mode
+  onSelect,
 }: ProductListProps) => {
   const navigate = useNavigate();
 
@@ -51,12 +62,42 @@ export const ProductList = ({
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
+  const [selectedProductForVariant, setSelectedProductForVariant] =
+    useState<Product | null>(null);
   const { showNotification } = useNotification();
 
   const handleDeleteClick = (product: Product) => {
     setProductToDelete(product);
     setDeleteDialogOpen(true);
   };
+
+  const handleSelectClick = (
+    event: React.MouseEvent<HTMLButtonElement>,
+    product: Product
+  ) => {
+    if (product.type === 'SIMPLE') {
+      onSelect && onSelect(product);
+    } else {
+      // Jika VARIABLE, buka popover
+      setAnchorEl(event.currentTarget);
+      setSelectedProductForVariant(product);
+    }
+  };
+
+  const handleClosePopover = () => {
+    setAnchorEl(null);
+    setSelectedProductForVariant(null);
+  };
+
+  const handleVariantSelect = (variantId: string) => {
+    if (selectedProductForVariant) {
+      onSelect && onSelect(selectedProductForVariant, variantId);
+    }
+    handleClosePopover();
+  };
+
+  const isPopoverOpen = Boolean(anchorEl);
 
   const handleConfirmDelete = () => {
     if (productToDelete) {
@@ -81,7 +122,7 @@ export const ProductList = ({
 
   if (loading) {
     return (
-      <Box className="w-full h-[200px] flex flex-col justify-center items-center gap-4">
+      <Box className="w-full h-[60vh] flex flex-col justify-center items-center gap-4">
         <FaSpinner className="animate-spin text-purple-600 text-3xl" />
         <p className="text-utama text-lg">Loading...</p>
       </Box>
@@ -131,7 +172,7 @@ export const ProductList = ({
                 </SortableHeaderCell>
                 <TableCell>Stock</TableCell>
                 <TableCell>Category</TableCell>
-                <TableCell>Tanggal Dihapus</TableCell>
+                {mode === 'manage' && <TableCell>Tanggal Dihapus</TableCell>}
                 <TableCell>
                   <Typography className="text-right">Actions</Typography>
                 </TableCell>
@@ -167,7 +208,7 @@ export const ProductList = ({
                       }}
                     />
                   </TableCell>
-                  <TableCell>{formatToRupiah(Number(product.price))}</TableCell>
+                  <TableCell>{formatCurrency(Number(product.price))}</TableCell>
                   <TableCell>
                     {product.type === 'SIMPLE'
                       ? product.stock?.quantity ?? 0
@@ -178,11 +219,23 @@ export const ProductList = ({
                         )}
                   </TableCell>
                   <TableCell>{product.category.name}</TableCell>
-                  <TableCell>
-                    {product.deletedAt ? fromattedDate(product.deletedAt) : '-'}
-                  </TableCell>
+                  {mode === 'manage' && (
+                    <TableCell>
+                      {product.deletedAt
+                        ? formattedDate(product.deletedAt)
+                        : '-'}
+                    </TableCell>
+                  )}
                   <TableCell align="right">
-                    {product.deletedAt ? (
+                    {mode === 'select' ? (
+                      <Button
+                        size="small"
+                        variant="contained"
+                        onClick={(e) => handleSelectClick(e, product)}
+                      >
+                        Pilih
+                      </Button>
+                    ) : product.deletedAt ? (
                       <Tooltip title="Restore">
                         <IconButton
                           size="small"
@@ -240,6 +293,29 @@ export const ProductList = ({
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
       />
+
+      <Popover
+        open={isPopoverOpen}
+        anchorEl={anchorEl}
+        onClose={handleClosePopover}
+        anchorOrigin={{
+          vertical: 'bottom',
+          horizontal: 'left',
+        }}
+      >
+        <List dense>
+          {selectedProductForVariant?.productVariants.map((variant) => (
+            <ListItem key={variant.id} disablePadding>
+              <ListItemButton onClick={() => handleVariantSelect(variant.id)}>
+                <ListItemText
+                  primary={variant.value}
+                  secondary={`Stok: ${variant.stock?.quantity ?? 0}`}
+                />
+              </ListItemButton>
+            </ListItem>
+          ))}
+        </List>
+      </Popover>
     </>
   );
 };

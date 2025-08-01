@@ -16,13 +16,13 @@ import {
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useNotification } from '@/hooks/useNotification';
-import { formatToRupiah } from '@/utils/priceFormated';
+import { formatCurrency } from '@/utils/formatCurrency';
 import Content from '@/components/ui/content/Content';
 import { ContentHead } from '@/components/ui/content/ContentHead';
 import { MdArrowBack } from 'react-icons/md';
 import { Purchase, PurchaseItem } from '@/types/PurchaseType';
 import { purchaseService } from '@/services/purchaseService';
-import formattedDate from '@/utils/formattedDate';
+import { formattedDate } from '@/utils/formattedDate';
 
 // Helper untuk menampilkan detail item di dalam tabel
 const getItemDetails = (item: PurchaseItem) => {
@@ -100,10 +100,10 @@ const PurchaseItemsTable = ({ items }: { items: PurchaseItem[] }) => (
               </TableCell>
               <TableCell align="right">{item.quantity}</TableCell>
               <TableCell align="right">
-                {formatToRupiah(Number(item.price))}
+                {formatCurrency(Number(item.price))}
               </TableCell>
               <TableCell align="right">
-                {formatToRupiah(Number(item.subtotal))}
+                {formatCurrency(Number(item.subtotal))}
               </TableCell>
             </TableRow>
           );
@@ -187,7 +187,7 @@ export default function PurchaseDetailPage() {
                 Total Pembayaran
               </Typography>
               <Typography variant="h5" fontWeight="bold" color="primary">
-                {formatToRupiah(Number(purchase.totalAmount))}
+                {formatCurrency(Number(purchase.totalAmount))}
               </Typography>
             </Stack>
           </>

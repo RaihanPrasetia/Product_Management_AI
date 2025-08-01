@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import ContentBody from '@/components/ui/content/ContentBody';
+import CustomeCard from '@/components/ui/content/CustomeCard';
 import { ContentHead } from '@/components/ui/content/ContentHead';
 
 import { Box, Button } from '@mui/material';
@@ -87,13 +87,13 @@ export default function ProductPage() {
           </Button>
         </Box>
       </ContentHead>
-      <ContentBody>
+      <CustomeCard>
         <ProductList
           products={data}
           loading={loading}
           onEdit={(product) => handleOpenDrawer('edit', product)}
         />
-      </ContentBody>
+      </CustomeCard>
 
       <ProductDrawer
         open={drawerOpen}

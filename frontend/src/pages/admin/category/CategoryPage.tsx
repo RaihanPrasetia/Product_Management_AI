@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import Content from '@/components/ui/content/Content';
-import ContentBody from '@/components/ui/content/ContentBody';
+import CustomeCard from '@/components/ui/content/CustomeCard';
 import { ContentHead } from '@/components/ui/content/ContentHead';
 
 import { Button } from '@mui/material';
@@ -47,13 +47,13 @@ export default function CategoryPage() {
           Tambah Kategori
         </Button>
       </ContentHead>
-      <ContentBody>
+      <CustomeCard>
         <CategoryList
           categories={data}
           loading={loading}
           onEdit={(category) => handleOpenDrawer('edit', category)}
         />
-      </ContentBody>
+      </CustomeCard>
 
       <CategoryDrawer
         open={drawerOpen}

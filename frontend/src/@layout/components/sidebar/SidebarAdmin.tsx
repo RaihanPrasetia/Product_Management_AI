@@ -31,7 +31,7 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
   return (
     <div className="bg-white relative lg:block sm:hidden shadow-lg  text-gray-700 border border-gray-200  rounded-r-xl h-full flex flex-col transition-all duration-300">
       {/* Close Button Mobile */}
-      <div className="lg:hidden flex justify-end p-2 absolute top-1 right-1">
+      <div className="lg:hidden flex justify-end p-2 absolute top-4 right-1">
         <button onClick={toggleSidebar} className="text-gray-700">
           <BiX className="w-6 h-6" />
         </button>
@@ -40,12 +40,12 @@ export default function Sidebar({ isOpen, toggleSidebar }: SidebarProps) {
       {/* Logo Component */}
       <SidebarLogo isOpen={isOpen} />
 
-      <hr className="bg-gray-300" />
+      <hr className="bg-gray-300/10" />
 
       {/* Navigation Component */}
       <div
-        className={`overflow-hidden max-h-[450px] shadow-inner py-2 ${
-          isOpen ? 'overflow-y-scroll' : 'overflow-y-hidden'
+        className={`overflow-hidden max-h-[500px] shadow-inner py-2 ${
+          isOpen ? 'overflow-y-auto' : 'overflow-y-hidden'
         }`}
       >
         <SidebarNavigation

@@ -12,7 +12,7 @@ import { FaSpinner } from 'react-icons/fa';
 import Pagination from '../../ui/CustomePagination';
 import CustomeFilter from '../../ui/CustomeFilter';
 import { Stock } from '@/types/StockType';
-import formattedDate from '@/utils/formattedDate';
+import { formattedDate } from '@/utils/formattedDate';
 import { useStockStore } from '@/stores/stock.store';
 import { SortableHeaderCell } from '@/components/ui/SortableHeaderCell';
 

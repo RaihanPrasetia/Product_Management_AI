@@ -45,7 +45,7 @@ export default function ProfileDropdown({ logout }: ProfileDropdownProps) {
         <img
           src={profileImg}
           alt="User Avatar"
-          className="w-full h-full object-cover"
+          className="w-full h-full p-0.5 cursor-pointer rounded-full border border-black/20 shadow-md object-cover"
         />
       </button>
       {isDropdownOpen && (

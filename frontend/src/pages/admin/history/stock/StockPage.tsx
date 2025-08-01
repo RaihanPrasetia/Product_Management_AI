@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import Content from '@/components/ui/content/Content';
-import ContentBody from '@/components/ui/content/ContentBody';
+import CustomeCard from '@/components/ui/content/CustomeCard';
 import { ContentHead } from '@/components/ui/content/ContentHead';
 
 import { StockList } from '@/components/admin/stock/StockList';
@@ -20,9 +20,9 @@ export default function StockPage() {
         subTitle="Kelola kategori produk Anda di sini"
       />
 
-      <ContentBody>
+      <CustomeCard>
         <StockList stocks={data} loading={loading} />
-      </ContentBody>
+      </CustomeCard>
     </Content>
   );
 }

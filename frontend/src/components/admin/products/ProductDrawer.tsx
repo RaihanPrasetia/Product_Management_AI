@@ -74,10 +74,10 @@ export const ProductDrawer = ({
           brandService.getAll(),
           variantService.getAll(),
         ]);
-        if (catRes.data && brandRes.data && varRes.variants) {
+        if (catRes.data && brandRes.data && varRes.data) {
           setCategories(catRes.data);
           setBrands(brandRes.data);
-          setVariants(varRes.variants);
+          setVariants(varRes.data);
           setLoading(false);
         }
       } catch (error) {
@@ -141,18 +141,6 @@ export const ProductDrawer = ({
   const onSubmit = async (data: ProductRequest) => {
     setSubmitting(true);
     try {
-      // const payload = { ...data };
-      // if (payload.type === 'VARIABLE') {
-      //   // Hapus price atau sku jika nilainya tidak valid (0 atau string kosong)
-      //   if (!payload.price) {
-      //     delete (payload as Partial<typeof payload>).price;
-      //   }
-      //   if (!payload.sku) {
-      //     delete (payload as Partial<typeof payload>).sku;
-      //   }
-      //   // Hapus initialStock dari level atas karena tidak relevan untuk produk variabel
-      //   delete (payload as any).initialStock;
-      // }
       if (editMode && product) {
         await productService.update(product.id, data);
         showNotification('Produk berhasil diperbarui', 'success');

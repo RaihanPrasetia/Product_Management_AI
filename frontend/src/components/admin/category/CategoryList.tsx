@@ -18,7 +18,7 @@ import { FaSpinner } from 'react-icons/fa';
 import Pagination from '../../ui/CustomePagination';
 import CustomeFilter from '../../ui/CustomeFilter';
 import { Category } from '@/types/CategoryType';
-import formattedDate from '@/utils/formattedDate'; // <-- Nama import diperbaiki
+import {formattedDate} from '@/utils/formattedDate'; // <-- Nama import diperbaiki
 import { useCategoryStore } from '@/stores/category.store';
 import { useNotification } from '@/hooks/useNotification';
 import { SortableHeaderCell } from '@/components/ui/SortableHeaderCell';

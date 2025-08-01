@@ -4,10 +4,6 @@ html {
     scroll-behavior: smooth;
 }
 
-button:hover {
-    @apply cursor-pointer
-}
-
 .status-badge {
     @apply text-sm font-semibold rounded-full w-2 h-2 flex items-center justify-center text-white;
 }

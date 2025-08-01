@@ -6,6 +6,7 @@ export interface DashboardStats {
   totalSuppliers: number;
   lowStockItemsCount: number;
   totalStockValue: string; // Tipe string sesuai response
+  totalSales: string;
 }
 
 // Tipe untuk setiap item di daftar pembelian terbaru
@@ -18,24 +19,41 @@ export interface RecentPurchase {
   };
 }
 
+export interface SalesByDay {
+  date: string;
+  total: string;
+}
+
+// Tipe untuk distribusi metode pembayaran
+export interface PaymentMethodDistribution {
+  paymentMethod: string;
+  amount: string;
+}
+
+// Tipe untuk produk terlaris
+export interface TopSellingProduct {
+  name: string;
+  quantitySold: number;
+}
+
+// Tipe untuk penjualan terbaru
+export interface RecentSale {
+  id: string;
+  invoiceNumber: string;
+  totalAmount: string;
+  createdBy: {
+    name: string;
+  };
+}
+
 // Tipe untuk setiap item di daftar stok rendah
 export interface LowStockItem {
   id: string;
   quantity: number;
-  updatedAt: string;
-  productId: string | null;
-  productVariantId: string | null;
-  product: {
-    id: string;
-    name: string;
-  } | null;
+  product: { name: string; id: string } | null;
   productVariant: {
     value: string;
-    sku: string;
-    product: {
-      id: string;
-      name: string;
-    };
+    product: { name: string; id: string };
   } | null;
 }
 
@@ -44,6 +62,10 @@ export interface Dashboard {
   stats: DashboardStats;
   recentPurchases: RecentPurchase[];
   lowStockItems: LowStockItem[];
+  salesByDay: SalesByDay[]; // <-- Tambahan
+  paymentMethodDistribution: PaymentMethodDistribution[]; // <-- Tambahan
+  topSellingProducts: TopSellingProduct[]; // <-- Tambahan
+  recentSales: RecentSale[]; // <-- Tambahan
 }
 
 // Tipe untuk keseluruhan struktur API response

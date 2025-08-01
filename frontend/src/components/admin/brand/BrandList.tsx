@@ -8,7 +8,6 @@ import {
   TableHead,
   TableRow,
   IconButton,
-  Chip,
   Tooltip,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
@@ -18,10 +17,11 @@ import { FaSpinner } from 'react-icons/fa';
 import Pagination from '../../ui/CustomePagination';
 import CustomeFilter from '../../ui/CustomeFilter';
 import { Brand } from '@/types/BrandType';
-import formattedDate from '@/utils/formattedDate'; // <-- Nama import diperbaiki
+import { formattedDate } from '@/utils/formattedDate'; // <-- Nama import diperbaiki
 import { useBrandStore } from '@/stores/brand.store';
 import { useNotification } from '@/hooks/useNotification';
 import { SortableHeaderCell } from '@/components/ui/SortableHeaderCell';
+import { getStatusChip } from '@/@layout/helpers/getStatusChip';
 
 type BrandListProps = {
   brands: Brand[];
@@ -132,18 +132,7 @@ export const BrandList = ({ brands, loading, onEdit }: BrandListProps) => {
                       1}
                   </TableCell>
                   <TableCell>{brand.name}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={brand.isActive ? 'Active' : 'Inactive'}
-                      size="small"
-                      sx={{
-                        backgroundColor: brand.isActive ? '#34d4c1' : '#9ca3af',
-                        color: 'white',
-                        fontWeight: 'bold',
-                        borderRadius: '8px',
-                      }}
-                    />
-                  </TableCell>
+                  <TableCell>{getStatusChip(brand.isActive)}</TableCell>
                   <TableCell>{formattedDate(brand.createdAt)}</TableCell>
                   <TableCell>{formattedDate(brand.updatedAt)}</TableCell>
                   <TableCell>

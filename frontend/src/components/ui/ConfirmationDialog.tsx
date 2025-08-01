@@ -5,10 +5,15 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
-  Typography,
   Box,
 } from '@mui/material';
-import { CheckCircle, Cancel, Warning } from '@mui/icons-material';
+import {
+  CheckCircle,
+  Cancel,
+  Warning,
+  Info, // Mengganti dengan ikon Info yang lebih sesuai
+} from '@mui/icons-material';
+import { alpha } from '@mui/material/styles';
 
 type ConfirmColor = 'success' | 'error' | 'warning' | 'info';
 
@@ -20,7 +25,7 @@ interface ConfirmationDialogProps {
   onCancel: () => void;
   confirmText?: string;
   cancelText?: string;
-  confirmColor?: ConfirmColor; // Limit to only valid values
+  confirmColor?: ConfirmColor;
 }
 
 export const ConfirmationDialog = ({
@@ -29,64 +34,71 @@ export const ConfirmationDialog = ({
   content,
   onConfirm,
   onCancel,
-  confirmText = 'Confirm',
-  cancelText = 'Cancel',
+  confirmText = 'Konfirmasi',
+  cancelText = 'Batal',
   confirmColor = 'error',
 }: ConfirmationDialogProps) => {
-  // Mapping colors to icons
+  // Mapping warna ke ikon dengan gaya yang lebih menonjol
   const iconMap: { [key in ConfirmColor]: React.ReactNode } = {
-    success: <CheckCircle color="success" fontSize="large" />,
-    error: <Cancel color="error" fontSize="large" />,
-    warning: <Warning color="warning" fontSize="large" />,
-    info: <CheckCircle color="info" fontSize="large" />,
+    success: <CheckCircle sx={{ fontSize: 64 }} />,
+    error: <Cancel sx={{ fontSize: 64 }} />,
+    warning: <Warning sx={{ fontSize: 64 }} />,
+    info: <Info sx={{ fontSize: 64 }} />,
   };
 
   return (
     <Dialog
       open={open}
       onClose={onCancel}
-      aria-labelledby="alert-dialog-title"
-      aria-describedby="alert-dialog-description"
-      sx={{ borderRadius: 2 }}
+      PaperProps={{
+        sx: {
+          borderRadius: 4, // Sudut lebih membulat
+          textAlign: 'center',
+          p: { xs: 3, sm: 4 }, // Padding responsif
+          pt: { xs: 4, sm: 5 },
+        },
+      }}
     >
-      <DialogTitle
-        id="alert-dialog-title"
+      {/* --- ICON --- */}
+      <Box
         sx={{
-          backgroundColor: '#f7f7f7',
-          fontWeight: 'bold',
-          padding: '16px 24px',
-          fontSize: '20px',
+          margin: 'auto',
+          mb: 3,
+          width: 80,
+          height: 80,
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          // Warna latar belakang ikon yang dinamis dan halus
+          bgcolor: (theme) => alpha(theme.palette[confirmColor].main, 0.1),
+          color: `${confirmColor}.main`,
         }}
       >
-        {iconMap[confirmColor] && (
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            {iconMap[confirmColor]}
-            <Typography variant="h6" sx={{ ml: 2 }}>
-              {title}
-            </Typography>
-          </Box>
-        )}
+        {iconMap[confirmColor]}
+      </Box>
+
+      {/* --- TITLE --- */}
+      <DialogTitle sx={{ p: 0, fontWeight: 'bold', fontSize: '1.5rem' }}>
+        {title}
       </DialogTitle>
-      <DialogContent sx={{ padding: '24px' }}>
-        <DialogContentText
-          id="alert-dialog-description"
-          sx={{ fontSize: '16px', color: '#555' }}
-        >
-          {content}
-        </DialogContentText>
+
+      {/* --- CONTENT --- */}
+      <DialogContent sx={{ p: 0, mt: 1 }}>
+        <DialogContentText color="text.secondary">{content}</DialogContentText>
       </DialogContent>
-      <DialogActions sx={{ padding: '16px' }}>
+
+      {/* --- ACTIONS --- */}
+      <DialogActions sx={{ p: 0, mt: 4, justifyContent: 'center', gap: 2 }}>
         <Button
           onClick={onCancel}
           variant="outlined"
-          color="primary"
+          color="inherit" // Tombol batal yang lebih netral
           sx={{
-            fontWeight: 'bold',
-            textTransform: 'uppercase',
-            width: '120px',
-            padding: '8px 16px',
-            borderRadius: '8px',
-            borderColor: '#888',
+            borderRadius: 2,
+            textTransform: 'none',
+            px: 3,
+            py: 1,
           }}
         >
           {cancelText}
@@ -96,12 +108,11 @@ export const ConfirmationDialog = ({
           variant="contained"
           color={confirmColor}
           sx={{
-            fontWeight: 'bold',
-            textTransform: 'uppercase',
-            width: '120px',
-            padding: '8px 16px',
-            borderRadius: '8px',
-            boxShadow: 3,
+            borderRadius: 2,
+            textTransform: 'none',
+            boxShadow: 'none',
+            px: 3,
+            py: 1,
           }}
           autoFocus
         >

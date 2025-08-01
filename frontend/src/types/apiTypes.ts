@@ -13,15 +13,15 @@ export interface ApiParams {
   orderDirection?: 'asc' | 'desc';
 }
 
-export interface ApiResponse<T> {
-  success: boolean;
-  message: string;
+export interface ApiResponse<T> extends MessageResponse {
   data: T[];
   pagination?: Pagination;
 }
 
-export interface SingleApiResponse<T> {
+export interface MessageResponse {
   success: boolean;
   message: string;
+}
+export interface SingleApiResponse<T> extends MessageResponse {
   data: T;
 }

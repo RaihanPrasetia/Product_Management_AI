@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import Content from '@/components/ui/content/Content';
-import ContentBody from '@/components/ui/content/ContentBody';
+import CustomeCard from '@/components/ui/content/CustomeCard';
 import { ContentHead } from '@/components/ui/content/ContentHead';
 
 import { Button } from '@mui/material';
@@ -46,13 +46,13 @@ export default function BrandPage() {
           Tambah Brand
         </Button>
       </ContentHead>
-      <ContentBody>
+      <CustomeCard>
         <BrandList
           brands={data}
           loading={loading}
           onEdit={(brand) => handleOpenDrawer('edit', brand)}
         />
-      </ContentBody>
+      </CustomeCard>
 
       <BrandDrawer
         open={drawerOpen}
