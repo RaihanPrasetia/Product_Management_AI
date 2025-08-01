@@ -7,6 +7,7 @@ import {
 } from '@/validations/sale.validation';
 import db from '@/configs/db.config';
 import { createQueryOptions } from '@/helpers/prisma.helper';
+import saleService from '@/services/sale.service';
 
 class SaleController {
   public create = async (req: Request, res: Response, next: NextFunction) => {
@@ -68,6 +69,32 @@ class SaleController {
       ResponseHelper.success(res, {
         data: updatedSale,
         message: 'Transaksi penjualan berhasil diperbarui',
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public delete = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      const sale = await SaleService.delete(id);
+      ResponseHelper.success(res, {
+        data: sale,
+        message: 'Sale berhasil dihapus',
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public restore = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      const sale = await saleService.restore(id);
+      ResponseHelper.success(res, {
+        data: sale,
+        message: 'Berhasil memulihkan data sale',
       });
     } catch (error) {
       next(error);

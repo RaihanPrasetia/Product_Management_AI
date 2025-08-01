@@ -12,49 +12,79 @@ class SaleService {
     return db.$transaction(async (prisma) => {
       let subtotal = 0;
       let totalDiscount = 0;
+      const saleItemsData = []; // Siapkan array untuk data SaleItem
 
-      // 1. Proses setiap item: validasi stok, kurangi stok, buat riwayat
+      // 1. Proses setiap item dalam satu loop yang efisien
       for (const item of items) {
-        const stockSource = item.productVariantId
-          ? await prisma.stock.findUnique({
-              where: { productVariantId: item.productVariantId },
-            })
-          : await prisma.stock.findUnique({
-              where: { productId: item.productId! },
-            });
+        const stockSourceId = item.productVariantId || item.productId!;
 
-        if (!stockSource || stockSource.quantity < item.quantity) {
-          throw new AppError(`Stok untuk item tidak mencukupi.`, 400);
+        // ✅ Solusi Race Condition: Update stok secara atomik
+        const updatedStock = await prisma.stock.updateMany({
+          where: {
+            // Tentukan stok mana yang akan diupdate
+            OR: [
+              { productId: stockSourceId },
+              { productVariantId: stockSourceId },
+            ],
+            // Pastikan stok mencukupi sebelum dikurangi
+            quantity: { gte: item.quantity },
+          },
+          data: {
+            quantity: { decrement: item.quantity },
+          },
+        });
+
+        // Jika tidak ada baris yang ter-update, berarti stok tidak cukup
+        if (updatedStock.count === 0) {
+          throw new AppError(`Stok untuk produk tidak mencukupi.`, 400);
         }
 
-        // Kurangi stok
-        await prisma.stock.update({
-          where: { id: stockSource.id },
-          data: { quantity: { decrement: item.quantity } },
+        // Karena kita tidak mengambil data stok lagi, kita perlu mengambil ID stock untuk history
+        const stockRecord = await prisma.stock.findFirst({
+          where: {
+            OR: [
+              { productId: stockSourceId },
+              { productVariantId: stockSourceId },
+            ],
+          },
         });
+        if (!stockRecord) throw new AppError('Stock record not found', 500); // Keamanan tambahan
 
         // Buat riwayat stok
         await prisma.stockHistory.create({
           data: {
-            stockId: stockSource.id,
+            stockId: stockRecord.id,
             change: -item.quantity,
-            newQuantity: stockSource.quantity - item.quantity,
+            // newQuantity akan lebih akurat di-handle oleh trigger database jika memungkinkan
+            // Tapi untuk saat ini, kita bisa hitung manual setelah decrement
+            newQuantity: stockRecord.quantity,
             type: 'SALE',
             notes: `Penjualan item`,
           },
         });
 
-        // Akumulasi total
-        subtotal += item.price * item.quantity;
-        totalDiscount += item.discount ?? 0;
+        // Akumulasi total dan siapkan data untuk SaleItem
+        const itemSubtotal = item.price * item.quantity;
+        const itemDiscount = item.discount ?? 0;
+
+        subtotal += itemSubtotal;
+        totalDiscount += itemDiscount;
+
+        saleItemsData.push({
+          productId: item.productId,
+          productVariantId: item.productVariantId,
+          quantity: item.quantity,
+          price: item.price,
+          discount: itemDiscount,
+          subtotal: itemSubtotal - itemDiscount,
+        });
       }
 
       const totalAmount = subtotal - totalDiscount;
 
-      // 2. Validasi total pembayaran
+      // 2. Validasi total pembayaran (tetap sama, sudah bagus)
       const totalPaymentAmount = payments.reduce((sum, p) => sum + p.amount, 0);
       if (Math.abs(totalPaymentAmount - totalAmount) > 0.01) {
-        // Toleransi pembulatan
         throw new AppError(
           'Total pembayaran tidak sesuai dengan total tagihan.',
           400
@@ -64,23 +94,15 @@ class SaleService {
       // 3. Buat entri Penjualan (Sale) utama
       const sale = await prisma.sale.create({
         data: {
-          invoiceNumber: `INV-${Date.now()}`, // Ganti dengan generator invoice yang lebih baik
+          invoiceNumber: `INV-${Date.now()}`,
           saleDate: new Date(),
           subtotal,
           totalDiscount,
           totalAmount,
           notes,
           createdById,
-          // Buat SaleItem dan Payment yang terhubung
-          items: {
-            create: items.map((item) => ({
-              ...item,
-              subtotal: item.price * item.quantity - (item.discount ?? 0),
-            })),
-          },
-          payments: {
-            create: payments,
-          },
+          items: { create: saleItemsData }, // ✅ Gunakan data yang sudah disiapkan
+          payments: { create: payments },
         },
         include: {
           items: true,
@@ -248,6 +270,24 @@ class SaleService {
       });
 
       return updatedSale;
+    });
+  }
+
+  public async delete(id: string) {
+    await this.findById(id); // Memastikan kategori ada sebelum dihapus
+    return db.sale.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+  }
+  
+  public async restore(id: string) {
+    await this.findById(id); // Memastikan kategori ada sebelum dihapus
+    return db.sale.update({
+      where: { id },
+      data: {
+        deletedAt: null,
+      },
     });
   }
 }

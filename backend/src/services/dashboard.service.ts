@@ -1,82 +1,165 @@
 import db from '@/configs/db.config';
 
-const LOW_STOCK_THRESHOLD = 10; // Tentukan ambang batas stok rendah di sini
+const LOW_STOCK_THRESHOLD = 10;
+
+interface DateRange {
+  startDate: Date;
+  endDate: Date;
+}
 
 class DashboardService {
-  public async getSummary() {
-    // Jalankan semua query agregat secara paralel untuk performa maksimal
+  public async getAdvancedSummary({ startDate, endDate }: DateRange) {
     const [
       totalProducts,
       totalSuppliers,
       lowStockCount,
-      totalStockValueResult,
-      recentPurchases,
+      salesSummary,
+      salesByDay,
+      paymentMethodDistribution,
+      topSellingItems,
+      recentSales,
       lowStockItems,
-    ] = await Promise.all([
-      // 1. Hitung total produk aktif
+    ] = await db.$transaction([
       db.product.count({ where: { deletedAt: null } }),
-
-      // 2. Hitung total supplier aktif
       db.supplier.count({ where: { deletedAt: null } }),
-
-      // 3. Hitung jumlah item dengan stok rendah
       db.stock.count({
         where: { quantity: { lte: LOW_STOCK_THRESHOLD, gt: 0 } },
       }),
-
-      // 4. Hitung total nilai inventaris menggunakan query SQL mentah
-      db.$queryRaw<[{ totalvalue: number }]>`
-        SELECT SUM(s.quantity * COALESCE(pv.price, p.price)) as totalValue
-        FROM "Stock" s
-        LEFT JOIN "ProductVariant" pv ON s."productVariantId" = pv.id
-        LEFT JOIN "Product" p ON s."productId" = p.id
-        WHERE p."deletedAt" IS NULL OR pv."deletedAt" IS NULL
+      db.sale.aggregate({
+        where: {
+          saleDate: { gte: startDate, lte: endDate },
+          deletedAt: null,
+        },
+        _sum: { totalAmount: true },
+      }),
+      db.$queryRaw<[{ date: Date; total: number }]>`
+        SELECT DATE_TRUNC('day', "saleDate") as date, SUM("totalAmount") as total
+        FROM "Sale"
+        WHERE "saleDate" >= ${startDate} AND "saleDate" <= ${endDate} AND "deletedAt" IS NULL
+        GROUP BY date
+        ORDER BY date ASC
       `,
-
-      // 5. Ambil 5 pembelian terbaru
-      db.purchase.findMany({
+      db.payment.groupBy({
+        by: ['paymentMethod'],
+        _sum: { amount: true },
+        where: {
+          sale: {
+            saleDate: { gte: startDate, lte: endDate },
+            deletedAt: null,
+          },
+        },
+        // PERBAIKAN 1: Tambahkan orderBy
+        orderBy: {
+          _sum: {
+            amount: 'desc',
+          },
+        },
+      }),
+      db.saleItem.groupBy({
+        by: ['productId', 'productVariantId'],
+        _sum: { quantity: true },
+        where: {
+          sale: {
+            saleDate: { gte: startDate, lte: endDate },
+            deletedAt: null,
+          },
+        },
+        orderBy: { _sum: { quantity: 'desc' } },
+        take: 5,
+      }),
+      db.sale.findMany({
         where: { deletedAt: null },
-        orderBy: { purchaseDate: 'desc' },
+        orderBy: { saleDate: 'desc' },
         take: 5,
         select: {
           id: true,
           invoiceNumber: true,
           totalAmount: true,
-          supplier: { select: { name: true } },
+          createdBy: { select: { name: true } },
         },
       }),
-
-      // 6. Ambil 5 item dengan stok terendah
       db.stock.findMany({
         where: { quantity: { lte: LOW_STOCK_THRESHOLD, gt: 0 } },
         orderBy: { quantity: 'asc' },
         take: 5,
         include: {
-          product: { select: { name: true, sku: true } },
+          product: { select: { name: true, sku: true, id: true } },
           productVariant: {
             select: {
               value: true,
               sku: true,
-              product: { select: { id: true, name: true } },
+              product: { select: { name: true, id: true } },
             },
           },
         },
       }),
     ]);
 
-    // Format hasil untuk response
-    const summary = {
+    const topSellingProducts = await this.getTopSellingProductDetails(
+      topSellingItems
+    );
+
+    return {
       stats: {
         totalProducts,
         totalSuppliers,
         lowStockItemsCount: lowStockCount,
-        totalStockValue: totalStockValueResult[0]?.totalvalue || 0,
+        totalSales: salesSummary._sum.totalAmount || 0,
       },
-      recentPurchases,
+      salesByDay,
+      // PERBAIKAN 3: Gunakan optional chaining dan nullish coalescing
+      paymentMethodDistribution: paymentMethodDistribution.map((p) => ({
+        paymentMethod: p.paymentMethod,
+        amount: p._sum?.amount ?? 0,
+      })),
+      topSellingProducts,
+      recentSales,
       lowStockItems,
     };
+  }
 
-    return summary;
+  // PERBAIKAN 2: Perbarui tipe parameter agar lebih toleran
+  private async getTopSellingProductDetails(
+    items: {
+      productId: string | null;
+      productVariantId: string | null;
+      _sum?: { quantity?: number | null };
+    }[]
+  ) {
+    const productIds = items
+      .map((i) => i.productId)
+      .filter(Boolean) as string[];
+    const variantIds = items
+      .map((i) => i.productVariantId)
+      .filter(Boolean) as string[];
+
+    const [products, variants] = await Promise.all([
+      db.product.findMany({
+        where: { id: { in: productIds } },
+        select: { id: true, name: true },
+      }),
+      db.productVariant.findMany({
+        where: { id: { in: variantIds } },
+        select: {
+          id: true,
+          value: true,
+          product: { select: { name: true } },
+        },
+      }),
+    ]);
+
+    const productMap = new Map(products.map((p) => [p.id, p.name]));
+    const variantMap = new Map(
+      variants.map((v) => [v.id, `${v.product.name} - ${v.value}`])
+    );
+
+    return items.map((item) => ({
+      name: item.productVariantId
+        ? variantMap.get(item.productVariantId)
+        : productMap.get(item.productId!),
+      // Gunakan optional chaining di sini juga
+      quantitySold: item._sum?.quantity ?? 0,
+    }));
   }
 }
 

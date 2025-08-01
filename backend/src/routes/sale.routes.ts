@@ -10,6 +10,8 @@ const allowedRoles = ['ADMIN', 'CASHIR'];
 router.post('/', checkRole(allowedRoles), saleController.create);
 router.get('/', checkRole(allowedRoles), saleController.getAll);
 router.get('/:id', checkRole(allowedRoles), saleController.getById);
-router.put('/:id', checkRole(allowedRoles), saleController.update);
+router.put('/:id', checkRole(['ADMIN']), saleController.update);
+router.delete('/:id', checkRole(allowedRoles), saleController.delete);
+router.post('/:id/restore', checkRole(allowedRoles), saleController.restore);
 
 export default router;
