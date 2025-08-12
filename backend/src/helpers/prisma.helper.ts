@@ -37,14 +37,18 @@ export async function createQueryOptions(
 
   // 2. Sorting
   let prismaOrderBy: any = {};
-  if (orderBy.includes('.')) {
+  // Ensure orderBy is a string to prevent type confusion
+  let safeOrderBy: string = typeof orderBy === 'string' ? orderBy : (
+    Array.isArray(orderBy) && typeof orderBy[0] === 'string' ? orderBy[0] : defaultSortField
+  );
+  if (safeOrderBy.includes('.')) {
     // Jika key mengandung '.', buat objek nested
     // Contoh: 'product.name' akan menjadi { product: { name: 'asc' } }
-    const [relation, field] = orderBy.split('.');
+    const [relation, field] = safeOrderBy.split('.');
     prismaOrderBy[relation] = { [field]: orderDirection };
   } else {
     // Logika lama untuk field biasa
-    prismaOrderBy = { [orderBy]: orderDirection };
+    prismaOrderBy = { [safeOrderBy]: orderDirection };
   }
 
   // 3. Filtering
